@@ -1,0 +1,8 @@
+*.pyc
+*.diff
+*.egg-info/
+build/
+**/__pycache__
+**/.ipynb_checkpoints
+.vscode
+.mirror.*.env
