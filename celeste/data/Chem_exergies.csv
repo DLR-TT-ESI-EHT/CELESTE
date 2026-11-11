@@ -1,0 +1,324 @@
+Name                , State                    , Phase, Standard Chem Exergy kJ/mol
+Al                  , s                        , S    , 795.70
+Al4C3               , s                        , S    , 4216.20
+AlCl3               , s                        , S    , 352.20
+Al2O3               , s. alpha corundum        , S    , 15.00
+Al2O3.H2O           , s. boermite              , S    , 9.40
+Al2O3.3H2O          , s. gibbsite              , S    , 24.10
+Al2S3               , s                        , S    , 2705.30
+Al2 (SO4)3          , s                        , S    , 344.30
+Al2SiO5             , s. andalusite            , S    , 9.20
+Al2SiO5             , s. kyanite               , S    , 12.90
+Al2SiO5             , s. sillimanite           , S    , 15.30
+Al2SiO5.(OH)4       , s. kaolinite             , S    , 12.00
+3Al2O3.2SiO2        , s. mullite               , S    , 63.20
+Ba                  , s. II                    , S    , 775.10
+BaCO3               , s. II                    , S    , 53.30
+BaCl2               , s                        , S    , 88.70
+BaO                 , s                        , S    , 252.00
+BaO2                , s                        , S    , 196.70
+Ba(OH)2             , s                        , S    , 160.30
+BaS                 , s                        , S    , 929.00
+BaSO4               , s. barite                , S    , 30.70
+C                   , s. graphite              , S    , 409.87
+C                   , s. diamond               , S    , 412.77
+CCl4                , l                        , L    , 472.70
+C2N2                , g. cyanogen              , G    , 1118.10
+CH4                 , g. methane               , G    , 831.20
+C2H6                , g. ethane                , G    , 1495.00
+C3H8                , g. propane               , G    , 2152.80
+C4H10               , g. n-butane              , G    , 2804.20
+C2H4                , g. ethylene              , G    , 1360.30
+C3H6                , g. propylene             , G    , 2002.70
+C2H2                , g. acetylene             , G    , 1265.00
+C6H6                , g. benzene               , G    , 3301.30
+C6H6                , l. benzene               , L    , 3296.20
+C7H8                , l. methylbenzene         , L    , 3928.30
+C8H10               , l. ethylbenzene          , L    , 4584.80
+C10H8               , s. naphtalene            , S    , 5251.10
+C14H10              , s. anthracene            , S    , 7212.60
+CH2O2               , l. formic acid           , L    , 291.30
+C2H6O               , l. ethylalcohol          , L    , 1356.90
+C2H4O2              , l. acetic acid           , L    , 907.20
+C3H6O               , l. acethone              , L    , 1797.30
+C6H6O               , s. phenol                , S    , 3126.20
+C2H2O4              , s. oxalic acid           , S    , 367.90
+CH4ON2              , s. urea                  , S    , 688.60
+CO                  , g                        , G    , 274.71
+CO2                 , g                        , G    , 19.48
+CS2                 , l                        , L    , 1694.30
+Ca                  , S. II                    , S    , 729.50
+CaC2                , s                        , S    , 1484.60
+CaCO3               , s. aragonite             , S    , 16.30
+CaCO3.MgCO3         , s. dolomite              , S    , 32.20
+CaCl2               , s                        , S    , 105.00
+CaFe2O4             , s                        , S    , 121.10
+Ca2Fe2O4            , s                        , S    , 212.20
+Ca2Mg5Si8O22(OH)2   , s. tremolite             , S    , 79.70
+Ca(NO3)2            , s                        , S    , -1.00
+CaO                 , s                        , S    , 127.30
+CaO.Al2O3           , s                        , S    , 123.10
+CaO.2Al2O3          , s                        , S    , 138.80
+3CaO.Al2O3          , s                        , S    , 382.60
+12CaO.7Al2O3        , s                        , S    , 1546.70
+CaO.Al2O3.SiO2      , s. anortite              , S    , 66.00
+Ca(OH)2             , s                        , S    , 70.80
+Ca3(PO4)2           , s. alpha                 , S    , 37.30
+CaS                 , s                        , S    , 861.70
+CaSO4               , s. anhydrite             , S    , 25.30
+CaSO4.1/2H2O        , s. alpha                 , S    , 29.20
+CaSO4.2H2O          , s. gypsum                , S    , 25.70
+CaSiO3              , s. volastonite           , S    , 40.70
+Ca2SiO4             , s. beta                  , S    , 129.90
+Ca3SiO5             , s                        , S    , 271.10
+Cd                  , s. alpha                 , S    , 293.80
+Cd                  , s. nu                    , S    , 293.20
+CdCO3               , s                        , S    , 40.20
+CdCl2               , s                        , S    , 73.40
+CdO                 , s                        , S    , 67.30
+Cd(OH)2             , s                        , S    , 59.50
+CdS                 , s                        , S    , 746.90
+CdSO4               , s                        , S    , 88.60
+CdSO4.H2O           , s                        , S    , 80.60
+Cl2                 , g                        , G    , 123.60
+Cl                  , g                        , G    , 87.10
+Cr                  , s                        , S    , 584.70
+Cr3C2               , s                        , S    , 2492.20
+Cr7C3               , s                        , S    , 5155.50
+CrCl2               , s                        , S    , 352.20
+CrCl3               , s                        , S    , 301.90
+Cr2O3               , s                        , S    , 117.20
+Cu                  , s                        , S    , 134.20
+CuCO3               , s                        , S    , 31.10
+CuCl                , s                        , S    , 76.20
+CuCl2               , s                        , S    , 82.10
+CuFe2O4             , s                        , S    , 36.10
+CuO                 , s                        , S    , 6.50
+Cu2O                , s                        , S    , 124.40
+Cu(OH)2             , s                        , S    , 15.30
+CuS                 , s                        , S    , 690.30
+Cu2S                , s                        , S    , 791.80
+CuSO4               , s                        , S    , 89.80
+Cu2SO4              , s                        , S    , 253.60
+D2                  , g                        , G    , 263.80
+D2O                 , g                        , G    , 31.20
+D2O                 , l                        , L    , 22.30
+Fe                  , s. alpha                 , S    , 374.30
+Fe3C                , s. alpha cementite       , S    , 1553.50
+FeCO3               , s. siderite              , S    , 123.04.00
+FeC12               , s                        , S    , 195.50
+FeC13               , s                        , S    , 228.10
+FeCr2O4             , s                        , S    , 207.80
+Fe0.947O            , s. wustite               , S    , 111.30
+FeO                 , s                        , S    , 124.90
+Fe2O3               , s. hematite              , S    , 12.40
+Fe3O4               , s. magnetite             , S    , 116.30
+Fe(OH)3             , s                        , S    , 37.50
+FeS                 , s                        , S    , 883.50
+FeS2                , s. pyrite                , S    , 1426.60
+FeSO4               , s                        , S    , 170.90
+FeSi                , s                        , S    , 1155.50
+FeSiO3              , s                        , S    , 159.90
+FeSiO4              , s. fyalite               , S    , 232.30
+FcTiO3              , s                        , S    , 129.60
+H2                  , g                        , G    , 236.09
+H                   , g                        , G    , 331.03.00
+HCl                 , g                        , G    , 84.50
+HDO                 , g                        , G    , 18.80
+HDO                 , l                        , L    , 10.00
+HNO3                , l                        , L    , 43.50
+H2O                 , g                        , G    , 9.50
+H2O(L)              , l                        , L    , 0.90
+H3PO4               , s                        , S    , 89.60
+H2S                 , g                        , G    , 812.00
+H2SO4               , l                        , L    , 163.40
+K                   , s                        , S    , 366.60
+KAlSi3O8            , s. adulare               , S    , 7.40
+K2CO3               , s                        , S    , 84.70
+KCl                 , s                        , S    , 19.60
+KClO4               , s                        , S    , 136.00
+K2Cr2O7             , s                        , S    , 34.30
+KNO3                , s                        , S    , -19.40
+K2O                 , s                        , S    , 413.10
+KOH                 , s                        , S    , 107.60
+K2S                 , s                        , S    , 943.00
+K2SO3               , s                        , S    , 302.60
+K2SO4               , s                        , S    , 35.00
+K2SiO3              , s                        , S    , 138.20
+Mg                  , s                        , S    , 626.10
+MgAl2O4             , s. spinel                , S    , 45.30
+MgCO3               , s                        , S    , 29.80
+MgCl2               , s                        , S    , 158.20
+MgFeO4              , s                        , S    , 68.10
+MgO                 , s                        , S    , 59.10
+Mg(OH)2             , s                        , S    , 33.20
+Mg(NO3)2            , s                        , S    , 49.70
+Mg3(PO4)2           , s                        , S    , 78.10
+MgS                 , s                        , S    , 893.90
+MgSO4               , s                        , S    , 73.00
+MgSiO3              , s                        , S    , 14.80
+Mg2SiO4             , s                        , S    , 59.80
+Mg3Si2O5(OH)4       , s. chrysilite            , S    , 38.80
+Mg3Si2O10(OH)2      , s. talc                  , S    , 14.80
+Mg2TiO4             , s                        , S    , 119.30
+Mn                  , s. alpha                 , S    , 487.70
+Mn3C                , s                        , S    , 1878.10
+MnCO3               , s                        , S    , 86.80
+MnCl2               , s                        , S    , 170.80
+MnFe2O4             , s                        , S    , 122.60
+MnO                 , s                        , S    , 124.80
+MnO2                , s                        , S    , 26.50
+Mn2O3               , s                        , S    , 100.20
+Mn3O4               , s                        , S    , 187.80
+Mn(OH)2             , s. amorphous             , S    , 112.70
+MnS                 , s. green                 , S    , 878.90
+MnSO4               , s                        , S    , 147.80
+MnSiO3              , s                        , S    , 108.00
+N2 (non-atmospheric), g                        , G    , 0.72
+N2                  , g                        , G    , 0.69
+NH3                 , g                        , G    , 337.90
+NH4C1               , s                        , S    , 331.30
+NH4NO3              , s                        , S    , 294.80
+(NH4)2SO4           , s                        , S    , 660.60
+NO                  , g                        , G    , 88.90
+NO2                 , g                        , G    , 55.60
+N2O                 , g                        , G    , 106.90
+N2O4                , g                        , G    , 106.50
+N2O5                , g                        , G    , 125.70
+Na                  , s                        , S    , 336.60
+NaAlO2              , s                        , S    , 67.15
+NaAlSi2O6.H20       , s. analcime              , S    , 20.30
+NaAlSi3O8           , s. low albite            , S    , 21.90
+Na2CO3              , s                        , S    , 41.10
+NaCl                , s                        , S    , 14.30
+NaHCO3              , s                        , S    , 21.60
+NaNO3               , s                        , S    , -22.70
+Na2O                , s                        , S    , 296.20
+NaOH                , s                        , S    , 74.90
+Na2S                , s                        , S    , 921.40
+Na2SO3              , s                        , S    , 287.50
+Na2SO4              , s                        , S    , 21.40
+Na2SiO3             , s                        , S    , 66.40
+Na2Si2O5            , s                        , S    , 68.20
+Na4SiO4             , s                        , S    , 256.90
+Ni                  , s                        , S    , 232.70
+Ni3C                , s                        , S    , 1142.50
+NiCO3               , s                        , S    , 36.00
+NiCl2               , s                        , S    , 97.20
+NiO                 , s                        , S    , 23.00
+Ni(OH)2             , s                        , S    , 25.50
+NiS                 , s                        , S    , 762.80
+Ni3S2               , s                        , S    , 1720.20
+NiSO4               , s                        , S    , 90.40
+NiSO4.6H2O          , s. alpha tetragonal green, S    , 53.60
+O2                  , g                        , G    , 3.97
+O                   , g                        , G    , 233.70
+O3                  , g                        , G    , 168.10
+P                   , s. alpha white           ,      , 861.40
+P                   , s. red triclinic         ,      , 849.20
+P4O10               , s. hexagonal             ,      , 767.70
+Pb                  , s                        ,      , 232.80
+PbCO3               , s                        ,      , 23.10
+PbCl2               , s                        ,      , 42.30
+PbO                 , s. yellow                ,      , 46.90
+PbO                 , s. red                   ,      , 45.90
+PbO2                , s                        ,      , 19.40
+Pb3O4               , s                        ,      , 72.20
+Pb(OH)2             , s                        ,      , 20.60
+PbS                 , s                        ,      , 743.70
+PbSO4               , s                        ,      , 37.20
+PbSiO3              , s                        ,      , 31.50
+Pb2SiO4             , s                        ,      , 75.80
+S                   , s. rhombic               ,      , 609.60
+SO2                 , g                        ,      , 313.40
+SO3                 , g                        ,      , 249.10
+Si                  , s                        ,      , 854.90
+SiC                 , s. alpha hexagonal       ,      , 1204.50
+SiCl4               , l                        ,      , 482.20
+SiO2                , s. alpha quartz          ,      , 2.20
+SiO2                , s. alpha cristobalite    ,      , 3.10
+SiO2                , s. amorphous             ,      , 8.20
+SiS2                , s                        ,      , 1866.60
+Sn                  , s. I. white              ,      , 558.70
+Sn                  , s. II. gray              ,      , 558.80
+SnCl2               , s                        ,      , 400.30
+SnO                 , s                        ,      , 303.80
+SnO2                , s                        ,      , 43.00
+SnS                 , s                        ,      , 1070.00
+SnS2                , s                        ,      , 1618.50
+Ti                  , s                        ,      , 907.20
+TiC                 , s                        ,      , 1136.60
+TiO                 , s                        ,      , 419.20
+TiO2                , s. rutile                ,      , 21.70
+TiO3                , s                        ,      , 386.10
+Ti3O5               , s                        ,      , 414.10
+TiS2                , s                        ,      , 1876.20
+U                   , s                        ,      , 1196.60
+UCl3                , s                        ,      , 556.00
+UCl4                , s                        ,      , 491.10
+UCl5                , s                        ,      , 519.50
+UO2                 , s                        ,      , 168.90
+UO3                 , s                        ,      , 49.80
+U3O8                , s                        ,      , 236.20
+W                   , s                        ,      , 827.50
+WC                  , s                        ,      , 1199.10
+WO2                 , s                        ,      , 297.50
+WO3                 , s                        ,      , 69.30
+WS2                 , s                        ,      , 1796.60
+Zn                  , s                        ,      , 339.20
+ZnCO3               , s                        ,      , 23.50
+ZnCl2               , s                        ,      , 93.40
+ZnFe2O4             , s                        ,      , 32.20
+ZnO                 , s                        ,      , 22.90
+Zn(OH)2             , s. beta                  ,      , 25.70
+ZnS                 , s. sphalerite            ,      , 747.60
+ZnSO4               , s                        ,      , 82.30
+Zn2SiO4             , s                        ,      , 18.10
+C5H12               ,                          , L    , 3257.78
+C6H14               ,                          , L    , 3880.53
+C7H16               ,                          , L    , 4504.41
+C8H18               ,                          , L    , 5127.26
+C9H20               ,                          , L    , 5751.62
+C10H22              ,                          , L    , 6374.65
+C11H24              ,                          , L    , 6998.50
+C12H26              ,                          , L    , 7623.96
+C13H28              ,                          , L    , 8250.31
+C14H30              ,                          , L    , 8875.49
+C15H32              ,                          , L    , 9500.87
+C16H34              ,                          , L    , 10126.51
+C17H36              ,                          , L    , 10753.06
+C18H38              ,                          , L    , 11379.79
+C19H40              ,                          , L    , 12000.25
+C20H42              ,                          , L    , 12617.36
+C21H44              ,                          , L    , 13251.34
+C22H46              ,                          , L    , 13873.86
+C23H48              ,                          , L    , 14496.45
+C24H50              ,                          , L    , 15119.31
+C25H52              ,                          , L    , 15742.20
+C26H54              ,                          , L    , 16364.71
+C27H56              ,                          , L    , 16987.32
+C28H58              ,                          , L    , 17610.25
+C29H60              ,                          , L    , 18232.20
+C30H62              ,                          , L    , 18854.95
+C31H64              ,                          , L    , 19476.22
+C32H66              ,                          , L    , 20098.41
+C33H68              ,                          , L    , 20719.37
+C34H70              ,                          , L    , 21346.59
+C35H72              ,                          , L    , 21959.17
+C36H74              ,                          , L    , 22579.35
+C37H76              ,                          , L    , 23196.79
+C38H78              ,                          , L    , 23814.29
+C39H80              ,                          , L    , 24430.39
+C40H82              ,                          , L    , 25045.33
+C41H84              ,                          , L    , 25666.33
+C42H86              ,                          , L    , 26275.25
+C43H88              ,                          , L    , 26880.67
+C44H90              ,                          , L    , 27492.18
+C45H92              ,                          , L    , 28099.79
+C46H94              ,                          , L    , 28705.17
+C47H96              ,                          , L    , 29312.34
+C48H98              ,                          , L    , 29916.66
+C49H100             ,                          , L    , 30511.39
+C50H102             ,                          , L    , 31096.98
+CH3OH               ,                          , G    , 721.84
+CH3OH(L)            ,                          , L    , 717.42
