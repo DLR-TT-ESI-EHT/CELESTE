@@ -1,5 +1,5 @@
 import numpy as np
-
+from ..interfaces import Flange
 
 class RecycleMixin:
     """Recycle-loop convergence algorithms (FPI, Wegstein, Steffensen, Aitken)."""
@@ -26,7 +26,7 @@ class RecycleMixin:
             print(error)
         return error
 
-    def Recycle_FPI(self, F_source, F_sink, flow_method='seq_sol', eps=1e-8, max_iter=1000, print_err=False):
+    def Recycle_FPI(self, F_source:Flange, F_sink:Flange, flow_method:str='seq_sol', eps:float=1e-8, max_iter:int=1000, print_err:bool=False):
         """
         solve recycle by fixed point iteration method
         """
@@ -156,7 +156,7 @@ class RecycleMixin:
 
         return (count, error)
 
-    def Recycle_Steffensen(self, F_source, F_sink, flow_method="seq_sol", eps=1e-8, max_iter=1000, print_err=False):
+    def Recycle_Steffensen(self, F_source:Flange, F_sink:Flange, flow_method:str="seq_sol", eps:float=1e-8, max_iter:int=1000, print_err:bool=False):
         """
         Args:
             F_source (_type_): _description_
@@ -177,7 +177,8 @@ class RecycleMixin:
             x[1] = F_source.n
             error = self.recycle_solver(x[1], F_source, F_sink, flow_method, False)
             x[2] = F_source.n
-            x[0] = x[0] - ((x[1] - x[0]) ** 2) / (x[2] - 2 * x[1] + x[0])
+            if error >= eps:
+                x[0] = x[0] - ((x[1] - x[0]) ** 2) / (x[2] - 2 * x[1] + x[0])
             count += 1
             if print_err and count % 100 == 0:
                 print(f"  Steffensen iter {count}: error={error:.2e}, n={x[0]:.4f}")

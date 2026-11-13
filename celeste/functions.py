@@ -1,5 +1,6 @@
 import functools
 import numpy as np
+from numpy.typing import NDArray
 import scipy as sp
 import cantera as ct
 
@@ -23,7 +24,7 @@ def rgetattr(obj, attr, *args):
         return getattr(obj, attr, *args)
     return functools.reduce(_getattr, [obj] + attr.split('.'))
 
-def carbonFraction(T, P, x_dict):
+def carbonFraction(T:float, P:float, x_dict:dict[str,float]) -> tuple[float, float]:
     '''
     Calculate vapor and graphite fractions at equilibrium using Cantera
     
@@ -88,7 +89,7 @@ def carbonFraction(T, P, x_dict):
     
     return gasphase, graphite
     
-def CForm(T, P, x):
+def CForm(T:float, P:float, x:NDArray[np.float64]) -> dict[str,float]:
     ''' 
     function for checking the possibility of carbon formation with the help of the alpha and betha parameters and the equilibrium constants calculation.
     
@@ -128,7 +129,7 @@ def CForm(T, P, x):
     #print(f"{'Warning!: Carbon deposition by the' if K_1/alpha > 1 else 'No carbon deposition by the'} CH4 reaction. K_CH4/alpha = {K_1/alpha} ")
     #print(f"{'Warning: Carbon deposition by the' if K_2/betha > 1 else 'No carbon deposition by the'} CO2 reaction. K_CO2/betha = {K_2/betha} ")
     
-    variables = {'K_1':K_1, 'K_2':K_2, 'alpha':alpha, 'betha':betha, 'K_CH4/alpha':K_1/alpha, 'K_CO2/betha':K_2/betha}
+    variables: dict[str,float] = {'K_1':K_1, 'K_2':K_2, 'alpha':alpha, 'betha':betha, 'K_CH4/alpha':K_1/alpha, 'K_CO2/betha':K_2/betha}
     return variables
 
 def mm(graph):

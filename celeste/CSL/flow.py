@@ -33,20 +33,20 @@ class Sink(ModelBase):
     
 class Splitter(ModelBase):
     
-    def __init__(self, name, Medium, Split=0.5, T=298.15, P=1.,
+    def __init__(self, name:str, Medium, Split:float=0.5, T:float=298.15, P:float=1.,
                  F0_n=1, F0_Xi=None, 
                  F1_n=1, F1_Xi=None, 
                  F2_n=1, F2_Xi=None,               
                 ):
         super().__init__(locals())
         
-        self.F0 = interfaces.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=T, P=P)
-        self.F1 = interfaces.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=T, P=P)
-        self.F2 = interfaces.Flange(name + '.F2', Medium=Medium, n=F2_n, Xi=F2_Xi, T=T, P=P)
-        self._split = Split
+        self.F0: interfaces.Flange = interfaces.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=T, P=P)
+        self.F1: interfaces.Flange = interfaces.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=T, P=P)
+        self.F2: interfaces.Flange = interfaces.Flange(name + '.F2', Medium=Medium, n=F2_n, Xi=F2_Xi, T=T, P=P)
+        self._split: float = Split
 
     @property
-    def split(self):
+    def split(self) -> float:
         return self._split
 
     @split.setter
@@ -80,8 +80,8 @@ class Splitter(ModelBase):
 class Mixer(ModelBase):
     
     def __init__(self, name, Medium, T=298.15, P=1.,
-                 F0_n=1, F0_Xi=None, 
-                 F1_n=1, F1_Xi=None,            
+                 F0_n:float=1, F0_Xi=None, 
+                 F1_n:float=1, F1_Xi=None,            
                 ):
         super().__init__(locals())
         
