@@ -32,43 +32,74 @@ class Flange(Base):
         #if np.sum(self.Xi)>1.01:
         #    print(f'Warning: {self.name}.Xi has sum greater than 1:  sum({self.name}.Xi) = {np.sum(self.Xi)}')
 
+        # The superclass Base() already makes the following assignments. But it's repeated here just for the sake of avoiding Pyright warnings/errors.
+        self.n: float = n
+
     @property
-    def mw(self):
+    def mw(self) -> float:
         '''
         Molar Mass /g/mol
         '''
         return self.Medium.getMW()
 
     @property
-    def cp(self):
+    def cp(self) -> float:
         '''
         Specific Heat Capacity /kJ/mol/K
         '''
         return self.Medium.cp
     
     @property
-    def h(self):
+    def h(self) -> float:
         '''
         Specific Enthalpy /kJ/mol
         '''
         return self.Medium.h
 
     @property
-    def s(self):
+    def s(self) -> float:
         '''
         Specific Entropy /kJ/mol/K
         '''
         return self.Medium.s
 
     @property
-    def g(self):
+    def g(self) -> float:
         '''
         Specific Gibbs Energy /kJ/mol
         '''
         return self.Medium.g
+    
+    @property
+    def rho(self) -> float:
+        '''
+        Density /kg/m3
+        '''
+        return self.Medium.rho
+    
+    @property
+    def mu(self) -> float:
+        '''
+        Dynamic Viscosity /Pa.s
+        '''
+        return self.Medium.mu
+    
+    @property
+    def k(self) -> float:
+        '''
+        Thermal Conductivity /W/m/K
+        '''
+        return self.Medium.k
+    
+    @property
+    def Pr(self) -> float:
+        '''
+        Prandtl Number /-
+        '''
+        return self.Medium.Pr
 
     @property
-    def T(self):
+    def T(self) -> float:
         '''
         Absolute Temperature /K
         '''
@@ -96,7 +127,7 @@ class Flange(Base):
         #    print(f'Warning: {self.name}.Xi has sum greater than 1:  sum({self.name}.Xi) = {np.sum(self.Xi)}')
         
     @property
-    def P(self):
+    def P(self) -> float:
         '''
         Pressure /bar
         '''
@@ -120,7 +151,7 @@ class Flange(Base):
         self.Xi = self.Medium.Xi
 
     @property
-    def m(self):
+    def m(self) -> float:
         '''
         Mass Flow /g/s
         '''
@@ -153,35 +184,35 @@ class Flange(Base):
         return thFT.ThermoExergy(self.Medium, self.Xi, self.T, self.P)
         
     @property
-    def Ex(self):
+    def Ex(self) -> float:
         return self.ExergyObj.Ex
     
     @property
-    def LHV(self):
+    def LHV(self) -> float:
         return self.Medium.LHVmix
-
-    def T_hx(self, h, X):
-     
+        
+    def T_hx(self, h, X, tol=1e-12, maxit=20, Tmin=273.15, Tmax=3000.):
         self.Xi = X
+        T = self.T
+        for _ in range(maxit):
+            self.T = T
+            dh = h - self.h
+            if abs(dh) < tol:
+                return
+            T = min(max(T + dh/self.cp, Tmin), Tmax)
+        self.T = T 
         
-        def loss(t, h_args=h):
-            self.T = t[0]
-            return np.abs(self.h - h_args)
-        
-        sol = spo.least_squares(loss, self.T, bounds=(273.15, 2000.), args=(h,))
-        self.T = sol.x[0]
-
-    def T_sPX(self, s, P, X):
+    def T_sPX(self, s, P, X, tol=1e-12, maxit=20, Tmin=273.15, Tmax=3000.):
         self.P = P
         self.Xi = X
-
-        def loss(T, s):
-            self.T = T[0]
-            res = np.abs(self.s*1e3 - s*1e3)
-            return res
-        
-        sol = spo.least_squares(loss, self.T, bounds=(273.15, 2000.), args=(s,))
-        self.T = sol.x[0] 
+        T = self.T
+        for _ in range(maxit):
+            self.T = T
+            ds = s - self.s
+            if abs(ds) < tol:
+                return
+            T = min(max(T*np.exp(ds/self.cp), Tmin), Tmax)
+        self.T = T
 
     def getCarbon(self, T_drop=0):
         return carbonFraction(self.T-T_drop, self.P, dict(zip(self.Medium.species, self.Xi)))

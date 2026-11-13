@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import numba as nb
 import json
@@ -14,7 +15,171 @@ import CoolProp.CoolProp as CP
 1. Thermo: calculation of MW, cp, h, s, g of a single component or stream for NASA components
 2. ThermoDum: dummy thermo object. Returns empty arrays for cp, h, s and g
 3. Thermo_CP: CoolProp based calculation of thermo properties for single component or mixtures using HEOS, PR or SRK
+
+    - pure-species low-pressure viscosity: Chung et al. (1984/1988) correlation, using
+      each species' critical temperature Tc, critical molar volume Vc, acentric factor w
+      and dipole moment mu. Same data and constants as Modelica.Media.IdealGases
+      (FluidData.mo); like the MSL, the association correction kappa is NOT applied (kappa = 0).
+    - pure-species thermal conductivity: Eucken (method 1, MSL default) / modified-Eucken
+      (method 2) correlation built on top of the viscosity above and the species' own NASA cp(T)
+    - mixture viscosity: Wilke's method (Modelica's gasMixtureViscosity).
+    - mixture thermal conductivity: Mason & Saxena's method as implemented in Modelica's
+      lowPressureThermalConductivity (epsilon = 1.0; interaction term built from
+      Gamma = 210*(Tc*M^3/Pc^4)^(1/6) and the reduced temperature, NOT from the Wilke phi_ij).
+ 
+Species that are not covered by the low-pressure-gas theory above (the liquid pseudo-species 'H2O(L)'
+and 'CH3OH(L)' used elsewhere in this package) fall back to simple literature
+viscosity/conductivity correlations instead.
 '''
+
+R_UNIV = 8.314462618  # J/(mol.K)
+
+# Critical/polar data, identical to Modelica.Media.IdealGases.Common.FluidData.
+# Tc: critical temperature [K]; Pc: critical pressure [Pa] (needed by the Mason-Saxena
+# mixture conductivity); Vc: critical molar volume [cm3/mol]; w: acentric factor [-];
+# mu: dipole moment [Debye]; kappa: Chung's association correction. The MSL never passes
+# kappa to dynamicViscosityLowPressure (default k = 0), so it is 0 here for every species.
+# For a physically better (but non-MSL) water/methanol viscosity use kappa=0.076 / 0.215.
+
+FLUID_DATA = {
+    'H2':    dict(Tc=33.25,   Pc=12.97e5,  Vc=65.00,  w=-0.216, mu=0.0, kappa=0.0),
+    'CH4':   dict(Tc=190.56,  Pc=45.99e5,  Vc=98.60,  w=0.011,  mu=0.0, kappa=0.0),
+    'CO2':   dict(Tc=304.12,  Pc=73.74e5,  Vc=94.07,  w=0.225,  mu=0.0, kappa=0.0),
+    'CO':    dict(Tc=132.85,  Pc=34.94e5,  Vc=93.10,  w=0.045,  mu=0.1, kappa=0.0),
+    'H2O':   dict(Tc=647.096, Pc=220.64e5, Vc=55.95,  w=0.344,  mu=1.8, kappa=0.0),
+    'N2':    dict(Tc=126.20,  Pc=33.98e5,  Vc=90.10,  w=0.037,  mu=0.0, kappa=0.0),
+    'O2':    dict(Tc=154.58,  Pc=50.43e5,  Vc=73.37,  w=0.022,  mu=0.0, kappa=0.0),
+    'NH3':   dict(Tc=405.40,  Pc=113.53e5, Vc=72.47,  w=0.257,  mu=1.5, kappa=0.0),
+    'CH3OH': dict(Tc=512.64,  Pc=80.97e5,  Vc=118.00, w=0.565,  mu=1.7, kappa=0.0),
+    'C3H8':  dict(Tc=369.83,  Pc=42.48e5,  Vc=200.00, w=0.152,  mu=0.0, kappa=0.0),
+}
+
+# Species handled through liquid-state engineering correlations instead of the
+# low-pressure-gas theory above (see _waterLiquid*/_methanolLiquid* below).
+_LIQUID_TRANSPORT_SPECIES = ('H2O(L)', 'CH3OH(L)')
+
+
+@nb.njit
+def _omegaV(Tstar):
+    '''Neufeld collision integral, Omega_v(T*), used by the Chung viscosity correlation.'''
+    return (1.16145*Tstar**-0.14874 + 0.52487*np.exp(-0.77320*Tstar) + 2.16178*np.exp(-2.43787*Tstar))
+
+
+@nb.njit
+def _chungViscosityArr(T, Mi, Tci, Vci, wi, mui, kappai):
+    '''Pure-species low-pressure dynamic viscosity / Pa.s (Chung et al. 1984/1988).
+
+    T: gas temperature, K. Mi: molar mass, g/mol. Tci: critical temperature, K.
+    Vci: critical molar volume, cm3/mol. wi: acentric factor. mui: dipole moment, Debye.
+    kappai: empirical association correction.
+    '''
+    n = Mi.shape[0]
+    eta = np.zeros(n)
+    for i in range(n):
+        mur = 131.3*mui[i]/np.sqrt(Vci[i]*Tci[i])
+        Fc = 1. - 0.2756*wi[i] + 0.059035*mur**4 + kappai[i]
+        Tstar = 1.2593*T/Tci[i]
+        Om = _omegaV(Tstar)
+        eta_muP = 40.785*Fc*np.sqrt(Mi[i]*T)/(Vci[i]**(2./3.)*Om)  # micropoise
+        eta[i] = eta_muP*1e-7  # Pa.s
+    return eta
+
+
+@nb.njit
+def _euckenConductivityArr(eta_i, cp_i, R_i, method):
+    '''Pure-species thermal conductivity, W/(m.K), from the Eucken (method=1) or
+    modified-Eucken (method=2) correlation. eta_i: viscosity, Pa.s. cp_i, R_i: mass-specific
+    cp and gas constant, J/(kg.K).
+    '''
+    n = eta_i.shape[0]
+    k = np.zeros(n)
+    for i in range(n):
+        if method == 1:
+            k[i] = eta_i[i]*(cp_i[i] - R_i[i] + 2.25*R_i[i])
+        else:
+            cv = cp_i[i] - R_i[i]
+            k[i] = eta_i[i]*(1.32*cv + 1.77*R_i[i])
+    return k
+
+
+@nb.njit
+def _wilkePhi(eta_i, Mi):
+    '''Wilke interaction parameters phi_ij (also used as the Mason-Saxena parameters
+    for mixture thermal conductivity).'''
+    n = eta_i.shape[0]
+    phi = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            phi[i, j] = (1. + np.sqrt(eta_i[i]/eta_i[j])*(Mi[j]/Mi[i])**0.25)**2 / np.sqrt(8.*(1. + Mi[i]/Mi[j]))
+    return phi
+
+
+@nb.njit
+def _wilkeMixViscosity(Xi, eta_i, Mi):
+    '''Mixture viscosity, Pa.s, from Wilke's method.'''
+    n = Xi.shape[0]
+    phi = _wilkePhi(eta_i, Mi)
+    etam = 0.
+    for i in range(n):
+        if Xi[i] >= 1e-6:
+            denom = 0.
+            for j in range(n):
+                if Xi[j] >= 1e-6:
+                    denom += Xi[j]*phi[i, j]
+            etam += Xi[i]*eta_i[i]/denom
+    return etam
+
+
+@nb.njit
+def _masonSaxenaMixConductivity(Xi, k_i, Tci, Pci, Mi, T):
+    '''Mixture thermal conductivity, W/(m.K): Mason & Saxena as in Modelica's
+    lowPressureThermalConductivity (epsilon = 1.0).
+ 
+    Xi: mole fractions. k_i: pure-species conductivities, W/(m.K). Tci: critical
+    temperatures, K. Pci: critical pressures, Pa. Mi: molar masses (any unit, only
+    ratios enter). T: gas temperature, K.
+    '''
+    n = Xi.shape[0]
+    gam = np.zeros(n)
+    f = np.zeros(n)
+    for i in range(n):
+        gam[i] = 210.*(Tci[i]*Mi[i]**3/Pci[i]**4)**(1./6.)
+        Tr = T/Tci[i]
+        f[i] = np.exp(0.0464*Tr) - np.exp(-0.2412*Tr)
+    km = 0.
+    for i in range(n):
+        denom = 0.
+        for j in range(n):
+            ratio = gam[j]*f[i]/(gam[i]*f[j])  # translational-conductivity ratio lambda_i/lambda_j
+            A = (1. + np.sqrt(ratio)*(Mi[i]/Mi[j])**0.25)**2/np.sqrt(8.*(1. + Mi[i]/Mi[j]))
+            denom += Xi[j]*A
+        km += Xi[i]*k_i[i]/denom
+    return km
+
+
+def _waterLiquidViscosity(T):
+    '''Liquid water dynamic viscosity, Pa.s. Engineering correlation, valid roughly
+    273-600 K (same accuracy class as the Yaws-handbook density fits already used
+    elsewhere in this package for H2O(L)).'''
+    return 2.414e-5*10**(247.8/(T - 140.))
+
+
+def _waterLiquidConductivity(T):
+    '''Liquid water thermal conductivity, W/(m.K). Quadratic engineering fit,
+    valid roughly 273-600 K.'''
+    return -0.5752 + 6.397e-3*T - 8.151e-6*T**2
+
+
+def _methanolLiquidViscosity(T):
+    '''Liquid methanol dynamic viscosity, Pa.s. Andrade-type fit to literature data,
+    valid roughly 250-350 K.'''
+    return np.exp(-11.772 + 1272.7/T)
+
+
+def _methanolLiquidConductivity(T):
+    '''Liquid methanol thermal conductivity, W/(m.K). Linear fit to literature data,
+    valid roughly 260-330 K.'''
+    return 0.202 - 4.0e-4*(T - 293.15)
 
 @nb.njit
 def _ThermoMix(Xi, cp_i, h_i, s_i, P):
@@ -75,6 +240,10 @@ class Thermo:
                        'NH3': 316.836, 'C3H8':2044.2, 'C(gr)': 393.5})# https://cantera.org/examples/jupyter/thermo/heating_value.ipynb.html
     R = 8.314462618e-3
     
+    # 1: standard Eucken correlation (Modelica's default)
+    # 2: modified Eucken correlation (generally more accurate for polyatomic species, Poling et al.). Can be overridden per-instance, e.g. `myMedium.condMethod = 1`.
+    condMethod = 2
+    
     def __init__(self, species, T:float, Xi, P:float=1., T_unit:str='K'):
         
         self.species = species # nSpecies
@@ -83,7 +252,7 @@ class Thermo:
         if T_unit in ['C', 'c']:
             T = T + 273.15
         
-        self._T = T #np.array(T,dtype=float) 
+        self._T: float = T #np.array(T,dtype=float) 
         self._Xi = Xi # nSpecies
         self._P = P
         
@@ -104,6 +273,7 @@ class Thermo:
         self.thermoArr()      
         self.calcThermoSep()
         self.calcThermoMix()
+        self.setupTransport()
     
     ## Methods    
     def getMW(self):
@@ -156,6 +326,114 @@ class Thermo:
             self.s = self.s_T - self.R*self.__therm_mix[3]
 
         self.g = self.h - self._T*self.s
+        
+    def setupTransport(self):
+        '''Build the per-species transport-property tables (critical/polar data for the
+        gas-phase species, flags for the liquid pseudo-species). Called once at
+        construction, since self.species never changes over the life of the object.'''
+
+        n = self.Ns
+        self._Tc_i = np.ones(n)
+        self._Pc_i = np.ones(n)
+        self._Vc_i = np.ones(n)
+        self._w_i = np.zeros(n)
+        self._dipole_i = np.zeros(n)
+        self._kappa_i = np.zeros(n)
+        self._isGasTransport = np.zeros(n, dtype=bool)
+        self._isLiqTransport = np.zeros(n, dtype=bool)
+
+        unknown = []
+        for i, sp in enumerate(self.species):
+            if sp in FLUID_DATA:
+                d = FLUID_DATA[sp]
+                self._Tc_i[i] = d['Tc']
+                self._Pc_i[i] = d['Pc']
+                self._Vc_i[i] = d['Vc']
+                self._w_i[i] = d['w']
+                self._dipole_i[i] = d['mu']
+                self._kappa_i[i] = d['kappa']
+                self._isGasTransport[i] = True
+            elif sp in _LIQUID_TRANSPORT_SPECIES:
+                self._isLiqTransport[i] = True
+                base = FLUID_DATA[sp[:-3]]
+                self._Tc_i[i], self._Pc_i[i] = base['Tc'], base['Pc']
+            else:
+                unknown.append(sp)
+
+        self._hasTransportData = self._isGasTransport | self._isLiqTransport
+
+        if unknown:
+            print(f"Warning: no transport (viscosity/thermal conductivity) data for "
+                  f"species {unknown}; mu and k will exclude {'them' if len(unknown)>1 else 'it'} "
+                  f"from the mixing rule (as if not present).")
+
+    def calcTransport(self):
+        '''Pure-species dynamic viscosity (mu_i, Pa.s) and thermal conductivity
+        (k_i, W/(m.K)) at the current temperature. Gas species use the Chung
+        low-pressure-gas viscosity correlation and the Eucken/modified-Eucken thermal
+        conductivity correlation; the liquid pseudo-species use dedicated correlations.'''
+
+        self.mu_i = np.zeros(self.Ns)
+        self.k_i = np.zeros(self.Ns)
+
+        if np.any(self._isGasTransport):
+            g = self._isGasTransport
+            self.mu_i[g] = _chungViscosityArr(self._T, self._MWi[g], self._Tc_i[g],
+                                               self._Vc_i[g], self._w_i[g],
+                                               self._dipole_i[g], self._kappa_i[g])
+            cp_mass_g = self.cp_i[g]*1e6/self._MWi[g]   # J/(kg.K)
+            R_mass_g = self.R*1e6/self._MWi[g]          # J/(kg.K)
+            self.k_i[g] = _euckenConductivityArr(self.mu_i[g], cp_mass_g, R_mass_g, self.condMethod)
+
+        for i in np.nonzero(self._isLiqTransport)[0]:
+            sp = self.species[i]
+            if sp == 'H2O(L)':
+                self.mu_i[i] = _waterLiquidViscosity(self._T)
+                self.k_i[i] = _waterLiquidConductivity(self._T)
+            elif sp == 'CH3OH(L)':
+                self.mu_i[i] = _methanolLiquidViscosity(self._T)
+                self.k_i[i] = _methanolLiquidConductivity(self._T)
+
+        # species with no transport data get a tiny, non-zero placeholder viscosity so the
+        # Wilke/Mason-Saxena interaction parameters stay finite; they are still excluded
+        # from the actual mixture average via the Xi mask applied in mu/k below.
+        noData = ~self._hasTransportData
+        if np.any(noData):
+            self.mu_i[noData] = 1e-12
+            self.k_i[noData] = 1e-12
+            
+    @property
+    def mu(self) -> float:
+        '''
+        Dynamic viscosity of the mixture / Pa.s
+        (low-pressure-gas assumption; Chung pure-species values combined with Wilke's mixing rule). Species without
+        transport data (see setupTransport) are excluded, as if not present.
+        '''
+        self.calcTransport()
+        Xi_eff = np.where(self._hasTransportData, self._Xi, 0.)
+        return _wilkeMixViscosity(Xi_eff, self.mu_i, self._MWi)
+    
+    @property
+    def k(self) -> float:
+        '''
+        Thermal conductivity of the mixture / W/(m.K)
+        (low-pressure-gas assumption; Eucken/modified-Eucken pure-species values combined with the Mason-Saxena
+        mixing rule). Species without transport data (see setupTransport) are excluded,
+        as if not present.
+        '''
+        self.calcTransport()
+        Xi_eff = np.where(self._hasTransportData, self._Xi, 0.)
+        return _masonSaxenaMixConductivity(Xi_eff, self.k_i, self._Tc_i, self._Pc_i, self._MWi, self._T)
+    
+    @property
+    def cp_mass(self) -> float:
+        '''Mixture specific heat capacity at constant pressure, mass basis / J/(kg.K)'''
+        return self.cp*1e6/self.getMW()
+    
+    @property
+    def Pr(self) -> float:
+        '''Mixture Prandtl number / -'''
+        return self.mu*self.cp_mass/self.k
     
     # Calculate LHV of mixture
     @property
@@ -468,6 +746,31 @@ class Thermo_CP:
     @property
     def cp(self):
         return self.__AS.cpmolar()
+    
+    @property
+    def mu(self) -> float:
+        '''Dynamic viscosity of the mixture / Pa.s'''
+        try:
+            return self.__AS.viscosity()
+        except Exception as e:
+            print(f"Warning: CoolProp could not compute viscosity for this state/EOS "
+                  f"({self.EOS}): {e}. Returning NaN.")
+            return np.nan
+        
+    @property
+    def k(self) -> float:
+        '''Thermal conductivity of the mixture / W/(m.K)'''
+        try:
+            return self.__AS.conductivity()
+        except Exception as e:
+            print(f"Warning: CoolProp could not compute thermal conductivity for this "
+                  f"state/EOS ({self.EOS}): {e}. Returning NaN.")
+            return np.nan
+
+    @property
+    def Pr(self) -> float:
+        '''Mixture Prandtl number / -'''
+        return self.mu*self.cp/self.getMW()*1e3/self.k
 
     @property
     def Yi(self):
