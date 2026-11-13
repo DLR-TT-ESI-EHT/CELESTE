@@ -1,0 +1,38 @@
+[project]
+name = "celeste"
+description = "Framework for conceptual process modelling and exergy analysis in python"
+authors = [
+  { name = "Faisal Sedeqi", email = "tempest@dlr.de" },
+]
+license = { text = "Proprietary" }
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy",
+  "scipy",
+  "pandas",
+  "openpyxl",
+  "coolprop",
+  "numba",
+  "networkx",
+  "matplotlib"
+]
+keywords = ["celeste"]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14"
+]
+dynamic = ["version"]
+urls = { homepage = "https://github.com/DLR-TT-ESI-EHT/CELESTE" }
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.metadata]
+allow-direct-references=true
+
