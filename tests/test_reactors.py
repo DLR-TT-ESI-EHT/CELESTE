@@ -192,10 +192,17 @@ def test_methanol_former_classes():
 
 
 def test_reformer():
-    r = reactors.Reformer('r', media.media_C3(), F0_Xi=np.array([1e-5, 0.2, 1e-5, 1e-5, 0.7, 1e-5, 0.1]), T=900.0)
+    X0 = np.array([1e-5, 0.2, 1e-5, 1e-5, 0.7, 1e-5, 0.1])
+    r = reactors.Reformer('r', media.media_C3())
+    r.F0.Xi, r.F0.T = X0, 900.0
     sol = r.run_sol()
+    with pytest.warns(CelesteDeprecationWarning):
+        old = reactors.Reformer('o', media.media_C3(), F0_Xi=X0, T=900.0)
+    old.run_sol()
+    assert old.F1.T == pytest.approx(r.F1.T, rel=1e-12)
     assert sol.success and np.isfinite(r.F1.T)
-    line = reactors.Reformer_1D('l', media.media_C3(), F0_Xi=np.array([1e-5, 0.2, 1e-5, 1e-5, 0.7, 1e-5, 0.1]), T=900.0, N=3)
+    line = reactors.Reformer_1D('l', media.media_C3(), N=3)
+    line.F0.Xi, line.F0.T = X0, 900.0
     line.run_sol()
     assert line.getArrAttr('F1.T').shape == (3,) and line.Xd.shape == (3, 7)
 

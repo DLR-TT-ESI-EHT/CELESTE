@@ -801,16 +801,30 @@ class MeOH_WGS(MeOH):
 
 class Reformer(ModelBase):
     '''
-    Medium = media.media_C3()
+    Kinetic steam reformer of propane (Medium = media.media_C3()): shift, methane reforming and propane
+    pre-reforming rates on a catalyst bed of volume ``V``, heated through ``UA`` from a wall at ``Twall``.
+
+    Parameters:
+        V, por:            bed volume [m3] and porosity [-]
+        A, Ea:             pre-exponential factors and activation energies [J/mol] of the three rates
+        beta3, alpha3:     temperature and pressure exponents of the propane rate
+        Twall, UA:         wall temperature [K] and heat transfer coefficient times area [kW/K]
+    Deprecated: F0_n, F0_Xi, F1_n, F1_Xi, T, P (set the feed on F0).
+
+    Operating state: feed on ``F0``. Ports: F0 -> F1.
     '''
-    def __init__(self, name: str, Medium: media.Medium_Base, F0_n: float = 1., F0_Xi: float = 1., F1_n: float = 1., F1_Xi=None, T: float = 500., P: float = 1., V: float = 1., por: float = 0.75, A = [17400., 23950., 5000.], 
-                 Ea = [103191., 0.82*231266., 159241.], beta3: int = -1, alpha3: float = 2.8, Twall: float = 1000., UA: float = 1e-3):
-        
+    _default_state = {'F0': dict(n=1.0, T=500.0, P=1.0)}
+
+    def __init__(self, name: str, Medium: media.Medium_Base, V: float = 1., por: float = 0.75,
+                 A=(17400., 23950., 5000.), Ea=(103191., 0.82*231266., 159241.), beta3: float = -1,
+                 alpha3: float = 2.8, Twall: float = 1000., UA: float = 1e-3, T: float | None = None,
+                 P: float | None = None, **legacy):
         super().__init__(locals())
-        
-        self.F0 = interfaces.Flange(name + '.F0', Medium=self.Medium, n=F0_n, Xi=F0_Xi, T=T, P=P)
-        self.F1 = interfaces.Flange(name + '.F1', Medium=self.Medium, n=F1_n, Xi=F1_Xi, T=T, P=P)
-        
+        self.A, self.Ea = np.asarray(A, dtype=float), np.asarray(Ea, dtype=float)
+        self.F0 = interfaces.Flange(name + '.F0', Medium=self.Medium)
+        self.F1 = interfaces.Flange(name + '.F1', Medium=self.Medium)
+        self._init_state(self._spread(legacy, ['F0'], T=T, P=P))
+
         self.v_i = np.array([
             [1, 0, 1, -1, -1, 0, 0],
             [3, -1, 0, 1, -1, 0, 0],
@@ -876,15 +890,31 @@ class Reformer(ModelBase):
 
 class Reformer_1D(SysBase):
     '''
-    Medium = media.media_C3()
+    Reformer bed divided into ``N`` :class:`Reformer` cells in series (Medium = media.media_C3()).
+    Parameters as :class:`Reformer`; ``V`` is the volume of the whole bed.
+    Deprecated: F0_n, F0_Xi, T, P (set the feed on F0).
+
+    Operating state: feed on ``F0`` (the inlet of the first cell); ``F1`` is the outlet of the last cell.
     '''
-    def __init__(self, name: str, Medium: media.Medium_Base, F0_n: float = 1., F0_Xi: float = 1., T: float = 500., P: float = 1., V: float = 1., N: int = 10, por: float = 0.75, A = [17400., 23950., 5000.], 
-                 Ea = [103191., 0.82*231266., 159241.], beta3: int = -1, alpha3: float = 2.8, Twall: float = 1000., UA: float = 1e-3):
+    def __init__(self, name: str, Medium: media.Medium_Base, V: float = 1., N: int = 10, por: float = 0.75,
+                 A=(17400., 23950., 5000.), Ea=(103191., 0.82*231266., 159241.), beta3: float = -1,
+                 alpha3: float = 2.8, Twall: float = 1000., UA: float = 1e-3, T: float | None = None,
+                 P: float | None = None, **legacy):
         super().__init__(locals())
-        self.Refs = np.array([Reformer(f'{name}[{i}]', Medium=Medium, F0_n = F0_n, F0_Xi=F0_Xi, F1_n=F0_n, F1_Xi=F0_Xi, 
-                                       T=T, P=P, V=V/N, por=por, A = A, Ea = Ea, Twall=Twall, UA=UA, beta3=beta3, alpha3=alpha3) for i in range(N)], 
-                             dtype=object)
-        
+        self.Refs = np.array([Reformer(f'{name}[{i}]', Medium=Medium, V=V/N, por=por, A=A, Ea=Ea, Twall=Twall, UA=UA,
+                                       beta3=beta3, alpha3=alpha3) for i in range(N)], dtype=object)
+        self.Refs[0]._init_state(self._spread(legacy, ['F0'], T=T, P=P))
+
+    @property
+    def F0(self) -> interfaces.Flange:
+        """Feed (inlet of the first cell)."""
+        return self.Refs[0].F0
+
+    @property
+    def F1(self) -> interfaces.Flange:
+        """Outlet of the last cell."""
+        return self.Refs[-1].F1
+
     def run_sol(self):
         self.Refs[0]._sol= self.Refs[0].run_sol()
         

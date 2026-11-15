@@ -492,23 +492,23 @@ class AEL(ModelBase):
         j:      initial guess of the current density [A/cm2], negative for electrolysis
         Ncells: number of cells
         A:      active cell area [cm2]
+    Deprecated: F0_n, F0_Xi, F1_n, F1_Xi, F2_n, F2_Xi (set the state on the flanges).
+
+    Operating state: water feed on ``F0`` (default 1 mol/s of liquid water); F1 and F2 hold the starting point.
 
     Ports: F0 (water in) -> F1 (hydrogen side out), F2 (oxygen out)
     '''
-    def __init__(self, name: str, Medium: media.Medium_Base, T: float = 298.15, P: int = 1, j: float = -0.32, Ncells=None, A=None,
-                 F0_n: int = 1, F0_Xi=np.array([1, 0, 0, 0]), 
-                 F1_n: int = 1, F1_Xi=None, #['H2O(L)', 'H2', 'O2', 'H2O']
-                 F2_n: int = 1, F2_Xi=np.array([0, 0, 1, 0]) 
-                ): 
-                
-        '''
-        media.Media_AEL()
-        '''
+    _default_state = {'F0': dict(n=1.0, Xi=np.array([1., 0., 0., 0.])),      # ['H2O(L)', 'H2', 'O2', 'H2O']
+                      'F1': dict(n=1.0),
+                      'F2': dict(n=1.0, Xi=np.array([0., 0., 1., 0.]))}
+
+    def __init__(self, name: str, Medium: media.Medium_Base, T: float = 298.15, P: float = 1., j: float = -0.32,
+                 Ncells: int | None = None, A: float | None = None, **legacy):
         super().__init__(locals())
-        
-        self.F0 = interfaces.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=T, P=P)
-        self.F1 = interfaces.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=T, P=P) #H2
-        self.F2 = interfaces.Flange(name + '.F2', Medium=Medium, n=F2_n, Xi=F2_Xi, T=T, P=P) #O2
+        self.F0 = interfaces.Flange(name + '.F0', Medium=Medium, T=T, P=P)
+        self.F1 = interfaces.Flange(name + '.F1', Medium=Medium, T=T, P=P)    # H2
+        self.F2 = interfaces.Flange(name + '.F2', Medium=Medium, T=T, P=P)    # O2
+        self._init_state(legacy)
         self._j = j
         self.A = A
         
