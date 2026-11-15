@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from celeste import solvers
+from celeste._deprecation import CelesteDeprecationWarning
 from celeste.CSL import electrochem, equilibrium, media, reactors
 from conftest import element_flow
 

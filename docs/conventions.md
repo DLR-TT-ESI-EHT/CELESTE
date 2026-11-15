@@ -111,8 +111,9 @@ gives a stand-alone unit a sensible starting point.
 
 The former state keywords (`F0_n=`, `F0_Xi=`, `F1_T=`, `F1_P=`, ...) are still
 accepted and land on the same flanges, with a `CelesteDeprecationWarning`.
-`SourceM` keeps its `F1_*` arguments: they define the source. `AEL` and the
-FT units have not been migrated yet.
+`SourceM` keeps its `F1_*` arguments: they define the source. The FT units keep
+their `phase0`, `phase1`, ... arguments: the phase of a port is part of the unit
+(the liquid products of a distillation), not an operating state.
 
 | Member | Purpose |
 |---|---|
@@ -199,7 +200,7 @@ Existing public names are kept as they are (`run_sol`, `Eqs`, `MBcheck`,
 `get_Flanges`, `F0_n`, …). For new code:
 
 - classes in `CamelCase`, functions, methods and arguments in `snake_case`;
-- flange arguments as `<port>_<variable>`: `F0_n`, `F0_Xi`, `F1_T`, `F1_P`;
+- no flange state in the constructor: set it on the flange (`unit.F0.n = ...`);
 - temperatures of a unit as `T_<what>` (`T_cond`, `T_soc0`);
 - no `print` in models – return values, or warn through `warnings`.
 

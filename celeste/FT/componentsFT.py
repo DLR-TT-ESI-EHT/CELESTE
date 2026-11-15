@@ -21,14 +21,7 @@ class GPU_1S(comp.GPUbase):
         Medium1: media of the inlet stream
         Medium2: media of the outlet stream
         eff: work efficiency of the GPU_1S. Must be 0 < eff <= 1. Defaults to 1
-        F0_n: inlet mol flow in [mol/s]. Defaults to 1.0
-        F1_n: outlet mol flow in [mol/s]. Defaults to 1.0
-        F0_Xi: inlet mol fraction of every component in Medium 
-        F1_Xi: outlet mol fraction of every component in Medium  
-        F0_T: inlet temperature in [K]. Defaults to 298.15 
-        F1_T: outlet temperature in [K]. Defaults to 298.15
-        F0_P: inlet pressure in [bar]. Defaults to 1.0
-        F1_P: outlet pressure in [bar]. Defaults to 1.0 
+        Deprecated: the state keywords F0_n, F0_Xi, F0_T, F0_P, F1_... (set the state on the flanges)
         phase0: phase of the intlet stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
         phase1: phase of the oulet stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
     
@@ -47,25 +40,23 @@ class GPU_1S(comp.GPUbase):
         run_sol: empty method. Returns: the system of equations in the "Eqs" method
 
     Notes:  
-        The size of F0_Xi and F1_Xi must be the same.
         Accept change of phase only for water.   
         If no composition is given then the object will take the reference composition in the given Medium. For more
         details go to the interfaces documentation.
 
     Examples:
         1) with change of phase
-        GPU = componentsFT.GPU_1S('GPU_example', Medium=mediaFT.Syncrude(), eff=0.7, F0_n=100, F0_Xi=mediaFT.Syncrude()._reference_X, 
-        F0_T=873.15, F0_P=3.0, phase0='Gas', F1_T=673.15, F1_P=1.0, phase1='Liquid')    
+        GPU = componentsFT.GPU_1S('GPU_example', Medium=mediaFT.Syncrude(), eff=0.7, phase0='Gas', phase1='Liquid')
+        GPU.F0.n, GPU.F0.T, GPU.F0.P = 100, 873.15, 3.0
+        GPU.F1.T, GPU.F1.P = 673.15, 1.0    
     """  
     def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, eff:float=1,
-                 F0_n:float=1.0, F0_Xi:npArray[np.float64]|None=None, F0_T:float=298.15, F0_P:float=1.0, phase0:Literal['Gas', 'Liquid']='Gas',
-                 F1_n:float=1.0, F1_Xi:npArray[np.float64]|None=None, F1_T:float=298.15, F1_P:float=1.0, phase1:Literal['Gas', 'Liquid']='Gas'
-                 ):
+                 phase0:Literal['Gas', 'Liquid']='Gas', phase1:Literal['Gas', 'Liquid']='Gas', **legacy):
         super().__init__(name, eff, locals())
+        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, phase=phase0)
+        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, phase=phase1)
+        self._init_state(legacy)
 
-        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=F0_T, P=F0_P, phase=phase0)
-        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=F1_T, P=F1_P, phase=phase1)
-        
     def Eqs(self)->None:
         self.F1.n = self.F0.n
         self.F1.Xi = self.F0.Xi
@@ -100,18 +91,7 @@ class GPU_2S(comp.GPUbase):
         idxSep: index of the component that goes to the flange F2. Takes one value 0<=idxSep<=(Medium.species.size-1).
                 Defaults to 3 (water index in media.Syncrude())
         eff: work efficiency of the GPU_2S. Must be 0 < eff <= 1. Defaults to 1
-        F0_n: inlet mol flow in [mol/s]. Defaults to 1.0
-        F1_n: flange F1 mol flow in [mol/s]. Defaults to 1.0
-        F2_n: flange F2 mol flow in [mol/s]. Defaults to 1.0
-        F0_Xi: inlet mol fraction of every component in Medium. Defaults to None   
-        F1_Xi: flange F1 mol fraction of every component in Medium. Defaults to None  
-        F2_Xi: flange F2 mol fraction of every component in Medium. Defaults to np.concatenate((np.array([0,0,0,1]),np.zeros(51)))
-        F0_T: inlet temperature in [K]. Defaults to 298.15 
-        F1_T: flange F1 temperature in [K]. Defaults to 298.15
-        F2_T: flange F2 temperature in [K]. Defaults to 298.15
-        F0_P: inlet pressure in [bar]. Defaults to 1.0
-        F1_P: flange F1 pressure in [bar]. Defaults to 1.0
-        F2_P: flange F2 pressure in [bar]. Defaults to 1.0
+        Deprecated: the state keywords F0_n, F0_Xi, F0_T, F0_P, F1_... (set the state on the flanges)
         phase0: phase of the intlet stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
         phase1: phase of the flange F1 stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
         phase2: phase of the flange F2 stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
@@ -141,24 +121,24 @@ class GPU_2S(comp.GPUbase):
 
     Examples:
         1) Separation of water
-        GPU = componentsFT.GPU_2S('GPU_example', Medium=mediaFT.Syncrude(), idxSep=3, eff=0.7, F0_n=100, phase0='Gas',
-        F0_Xi=mediaFT.Syncrude()._reference_X, F0_T=873.15, F0_P=3.0, F1_T=673.15, F1_P=1.0, phase1='Gas',
-        F2_T=350.15, F2_P=5.0, F2_Xi=np.concatenate((np.array([0,0,0,1]),np.zeros(51))), phase2='Gas')
+        GPU = componentsFT.GPU_2S('GPU_example', Medium=mediaFT.Syncrude(), idxSep=3, eff=0.7)
+        GPU.F0.n, GPU.F0.T, GPU.F0.P = 100, 873.15, 3.0
+        GPU.F1.T, GPU.F1.P = 673.15, 1.0
+        GPU.F2.T, GPU.F2.P = 350.15, 5.0
     """
-    def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, idxSep:int=3, eff:float=1,
-                 F0_n:float=1.0, F0_Xi:npArray[np.float64]|None=None, F0_T:float=298.15, F0_P:float=1.0, phase0:Literal['Gas', 'Liquid']='Gas', 
-                 F1_n:float=1.0, F1_Xi:npArray[np.float64]|None=None, F1_T:float=298.15, F1_P:float=1.0, phase1:Literal['Gas', 'Liquid']='Gas', 
-                 F2_n:float=1.0, F2_Xi:npArray[np.float64]|None=np.concatenate((np.array([0,0,0,1]), np.zeros(51))) , 
-                 F2_T:float=298.15, F2_P:float=1.0, phase2:str='Gas'
-                 ):
-        super().__init__(name, eff, locals())
+    _default_state = {'F2': dict(Xi=np.concatenate((np.array([0, 0, 0, 1]), np.zeros(51))))}   # water
 
-        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=F0_T, P=F0_P, phase=phase0)
-        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=F1_T, P=F1_P, phase=phase1) 
-        self.F2 = interFT.Flange(name + '.F2', Medium=Medium, n=F2_n, Xi=F2_Xi, T=F2_T, P=F2_P, phase=phase2) 
+    def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, idxSep:int=3, eff:float=1,
+                 phase0:Literal['Gas', 'Liquid']='Gas', phase1:Literal['Gas', 'Liquid']='Gas',
+                 phase2:Literal['Gas', 'Liquid']='Gas', **legacy):
+        super().__init__(name, eff, locals())
+        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, phase=phase0)
+        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, phase=phase1)
+        self.F2 = interFT.Flange(name + '.F2', Medium=Medium, phase=phase2)
         self.idxSep = idxSep
         self.Medium = Medium
-          
+        self._init_state(legacy)
+
     def Eqs(self)->None:
         self.F2.n = self.F0.Xi[self.idxSep]*self.F0.n
         self.F1.n = self.F0.n - self.F2.n 
@@ -199,18 +179,7 @@ class GPU_2SV2(comp.GPUbase):
         Sep: separation ratio of the components that goes to the flange F1. Takes an array of size Medium.species.size. 
             The individual components values can be a float from 0<=Sep<=1. Defaults to None
         eff: work efficiency of the GPU_2SV2. Must be 0 < eff <= 1. Defaults to 1
-        F0_n: inlet mol flow in [mol/s]. Defaults to 1.0
-        F1_n: flange F1 mol flow in [mol/s]. Defaults to 1.0
-        F2_n: flange F2 mol flow in [mol/s]. Defaults to 1.0
-        F0_Xi: inlet mol fraction of every component in Medium. Defaults to None   
-        F1_Xi: flange F1 mol fraction of every component in Medium. Defaults to None  
-        F2_Xi: flange F2 mol fraction of every component in Medium. Defaults to np.array([0.,0.,0.,0.,1.,0.]) 
-        F0_T: inlet temperature in [K]. Defaults to 298.15 
-        F1_T: flange F1 temperature in [K]. Defaults to 298.15
-        F2_T: flange F2 temperature in [K]. Defaults to 298.15
-        F0_P: inlet pressure in [bar]. Defaults to 1.0
-        F1_P: flange F1 pressure in [bar]. Defaults to 1.0
-        F2_P: flange F2 pressure in [bar]. Defaults to 1.0
+        Deprecated: the state keywords F0_n, F0_Xi, F0_T, F0_P, F1_... (set the state on the flanges)
     
     Properties: 
         Wid: ideal GPU work in [kJ/s]
@@ -228,23 +197,21 @@ class GPU_2SV2(comp.GPUbase):
 
     Examples:
         1) Separation of 100% H2, 100% CH4, 50% CO2, 40% CO, 0% H2O,  100% N2 to the F1. The difference goes to F2
-        GPU = Components.GPU_2SV2('GPU_example', Medium=media.Fuel_CH4(), Sep=np.array([1,1,0.5,0.4,0,1]), eff=0.7, F0_n=100, 
-        F0_Xi=np.array([0.1,0.3,0.05,0.05,0.5,1e-8]), F0_T=873.15, F0_P=3.0, F1_T=673.15, F1_P=1.0, 
-        F2_T=350.15, F2_P=5.0)
+        GPU = componentsFT.GPU_2SV2('GPU_example', Medium=media.Fuel_CH4(), Sep=np.array([1,1,0.5,0.4,0,1]), eff=0.7)
+        GPU.F0.n, GPU.F0.Xi = 100, np.array([0.1,0.3,0.05,0.05,0.5,1e-8])
+        GPU.F0.T, GPU.F0.P = 873.15, 3.0
+        GPU.F1.T, GPU.F1.P = 673.15, 1.0
+        GPU.F2.T, GPU.F2.P = 350.15, 5.0
     """
     def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, Sep:npArray[np.float64]|None=None, eff:float=1,
-                 F0_n:float=1.0, F0_Xi:npArray[np.float64]|None=None, F0_T:float=298.15, F0_P:float=1.0,
-                 F1_n:float=1.0, F1_Xi:npArray[np.float64]|None=None, F1_T:float=298.15, F1_P:float=1.0,
-                 F2_n:float=1.0, F2_Xi:npArray[np.float64]|None=None, F2_T:float=298.15, F2_P:float=1.0,
-                 ):
-
+                 **legacy):
         super().__init__(name, eff, locals())
-
-        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=F0_T, P=F0_P)
-        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=F1_T, P=F1_P)
-        self.F2 = interFT.Flange(name + '.F2', Medium=Medium, n=F2_n, Xi=F2_Xi, T=F2_T, P=F2_P)
+        self.F0 = interFT.Flange(name + '.F0', Medium=Medium)
+        self.F1 = interFT.Flange(name + '.F1', Medium=Medium)
+        self.F2 = interFT.Flange(name + '.F2', Medium=Medium)
         self.Sep = Sep
-          
+        self._init_state(legacy)
+
     def Eqs(self):
         self.F1.n = np.sum(self.F0.n*self.F0.Xi*self.Sep)
         self.F1.Xi = self.F0.n*self.F0.Xi*self.Sep/self.F1.n
@@ -287,22 +254,7 @@ class GPU_3S(comp.GPUbase):
             must be equals to -1. Defaults to None.
             IMPORTANT -1 could only be assigned to one component. 
         eff: work efficiency of the GPU_3S. Must be 0 < eff <= 1. Defaults to 1
-        F0_n: inlet mol flow in [mol/s]. Defaults to 1.0
-        F1_n: flange F1 mol flow in [mol/s]. Defaults to 1.0
-        F2_n: flange F2 mol flow in [mol/s]. Defaults to 1.0
-        F3_n: flange F3 mol flow in [mol/s]. Defaults to 1.0
-        F0_Xi: inlet mol fraction of every component in Medium. Defaults to None   
-        F1_Xi: flange F1 mol fraction of every component in Medium. Defaults to None  
-        F2_Xi: flange F2 mol fraction of every component in Medium. Defaults to None
-        F3_Xi: flange F3 mol fraction of every component in Medium. Defaults to 1
-        F0_T: inlet temperature in [K]. Defaults to 298.15 
-        F1_T: flange F1 temperature in [K]. Defaults to 298.15
-        F2_T: flange F2 temperature in [K]. Defaults to 298.15
-        F3_T: flange F3 temperature in [K]. Defaults to 298.15
-        F0_P: inlet pressure in [bar]. Defaults to 1.0
-        F1_P: flange F1 pressure in [bar]. Defaults to 1.0
-        F2_P: flange F2 pressure in [bar]. Defaults to 1.0
-        F3_P: flange F3 pressure in [bar]. Defaults to 1.0
+        Deprecated: the state keywords F0_n, F0_Xi, F0_T, F0_P, F1_... (set the state on the flanges)
         phase0: phase of the intlet stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
         phase1: phase of the flange F1 stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
         phase2: phase of the flange F2 stream. It can be either 'Gas' or 'Liquid'. Defaults to 'Gas'
@@ -346,20 +298,17 @@ class GPU_3S(comp.GPUbase):
         -1: completely goes to flange F3  
     """
     def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, sep:npArray[np.float64]|None=None, eff:float=1,
-                 F0_n:float=1.0, F0_Xi:npArray[np.float64]|None=None, F0_T:float=298.15, F0_P:float=1.0, phase0:Literal['Gas', 'Liquid']='Gas',
-                 F1_n:float=1.0, F1_Xi:npArray[np.float64]|None=None, F1_T:float=298.15, F1_P:float=1.0, phase1:Literal['Gas', 'Liquid']='Gas',
-                 F2_n:float=1.0, F2_Xi:npArray[np.float64]|None=None, F2_T:float=298.15, F2_P:float=1.0, phase2:Literal['Gas', 'Liquid']='Gas',
-                 F3_n:float=1.0, F3_T:float=298.15, F3_P:float=1.0, phase3:Literal['Gas', 'Liquid']='Liquid',
-                ):       
+                 phase0:Literal['Gas', 'Liquid']='Gas', phase1:Literal['Gas', 'Liquid']='Gas',
+                 phase2:Literal['Gas', 'Liquid']='Gas', phase3:Literal['Gas', 'Liquid']='Liquid', **legacy):
         super().__init__(name, eff, locals())
-
-        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=F0_T, P=F0_P, phase=phase0)
-        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=F1_T, P=F1_P, phase=phase1) 
-        self.F2 = interFT.Flange(name + '.F2', Medium=Medium, n=F2_n, Xi=F2_Xi, T=F2_T, P=F2_P, phase=phase2) 
-        self.F3 = interFT.Flange(name + '.F3', Medium=mediaFT.Water(), n=F3_n, Xi=np.array([1]), T=F3_T, P=F3_P, phase=phase3) 
+        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, phase=phase0)
+        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, phase=phase1)
+        self.F2 = interFT.Flange(name + '.F2', Medium=Medium, phase=phase2)
+        self.F3 = interFT.Flange(name + '.F3', Medium=mediaFT.Water(), Xi=np.array([1]), phase=phase3)
         self.Medium = Medium
         self.sep = sep
-        
+        self._init_state(legacy)
+
     def Eqs(self):
         idx = np.flatnonzero(np.asarray(self.sep) == -1)
         sep1:npArray[np.float64] = np.where(self.sep >= 0, self.sep, 0).astype(float)
@@ -422,14 +371,7 @@ class CompIsent(turbomachinery.CompIsent):
         name: objects name
         Medium: media of the streams
         eff: work efficiency of the CompIsent object. Must be 0 < eff <= 1. Defaults to 1
-        F0_n: inlet mol flow in [mol/s]. Defaults to 1.0
-        F1_n: outlet mol flow in [mol/s]. Defaults to 1.0
-        F0_Xi: inlet mol fraction of every component in Medium. Defaults to None  
-        F1_Xi: outlet mol fraction of every component in Medium. Defaults to None   
-        F0_T: inlet temperature in [K]. Defaults to 298.15 
-        F1_T: outlet temperature in [K]. Defaults to 398.15
-        F0_P: inlet pressure in [bar]. Defaults to 1.0
-        F1_P: outlet pressure in [bar]. Defaults to 3.0
+        Deprecated: the state keywords F0_n, F0_Xi, F0_T, F0_P, F1_... (set the state on the flanges)
     
     Attributes: 
         R: ideal gas constant in [kJ/mol K]
@@ -451,32 +393,22 @@ class CompIsent(turbomachinery.CompIsent):
         run_sol: contains the optimizer function and guesses values. Returns: the solution of the optimization
 
     Notes:  
-        The size of F0_Xi and F1_Xi must be the same.
         If no composition is given then the object will take the reference composition in the given Medium. For more
         details go to the interfaces documentation.
 
     Examples:
         1) 
-        Compressor = componentsFT.CompIsent('Compressor_example', Medium=mediaFT.Syncrude(), eff=0.7, F0_n=100, 
-        F0_Xi=mediaFT.Syncrude()._reference_X, F0_T=473.15, F0_P=3.0, F1_P=6.0)
+        Compressor = componentsFT.CompIsent('Compressor_example', Medium=mediaFT.Syncrude(), eff=0.7)
+        Compressor.F0.n, Compressor.F0.T, Compressor.F0.P = 100, 473.15, 3.0
+        Compressor.F1.P = 6.0
     """
-    def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, eff:float=1,
-                F0_n:float=1.0, F0_Xi:npArray[np.float64]|None=None, F0_T:float=298.15, F0_P:float=1.0, 
-                F1_n:float=1.0, F1_Xi:npArray[np.float64]|None=None, F1_T:float=298.15, F1_P:float=3.0, 
-                 ):
-        super().__init__(name, Medium=Medium, eff=eff)   # FT flanges with a phase replace the CSL ones
-        
-        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, n=F0_n, Xi=F0_Xi, T=F0_T, P=F0_P, phase='Gas')
-        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, n=F1_n, Xi=F1_Xi, T=F1_T, P=F1_P, phase='Gas')  
-        
- 
+    _default_state = {'F0': dict(n=1.0, T=298.15, P=1.0), 'F1': dict(n=1.0, T=298.15, P=3.0)}
 
-
-
-
-
-
-
+    def __init__(self, name:str, Medium:mediaFT.Medium_Syncrude, eff:float=1, **legacy):
+        super().__init__(name, Medium=Medium, eff=eff)
+        self.F0 = interFT.Flange(name + '.F0', Medium=Medium, phase='Gas')   # FT flanges (with a phase)
+        self.F1 = interFT.Flange(name + '.F1', Medium=Medium, phase='Gas')
+        self._init_state(legacy)
 
 class Flash(ModelBase):
     """

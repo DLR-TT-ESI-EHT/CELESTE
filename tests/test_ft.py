@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from celeste.FT import componentsFT, flowFT, heatFT, interfacesFT, mediaFT, reactorsFT
+from celeste._deprecation import CelesteDeprecationWarning
 
 FT_MEDIA = ['Syncrude', 'Wax', 'Naphtha', 'LightGas', 'Kerosene', 'Distillate', 'Water', 'Hydrogen', 'Alkanes']
 
@@ -107,13 +108,15 @@ def test_reference_composition_is_kept():
 def test_ft_reactor_and_separation():
     x = np.zeros(55)
     x[[0, 1, 2, 4]] = 0.62, 0.05, 0.30, 0.03
-    r = reactorsFT.FT('r', alpha=0.85, CO_conv=0.6, F0_Xi=x)
+    r = reactorsFT.FT('r', alpha=0.85, CO_conv=0.6)
+    r.F0.Xi = x
     r.run_sol()
     assert r.Q == pytest.approx(-32.643397, rel=1e-6)          # F2 is liquid (was evaluated as gas: -32.627621)
     assert r.F0.m == pytest.approx(r.F1.m + r.F2.m, rel=1e-5)
     r.ExBs()
     assert r.Exloss > 0 and 0 < r.Exeff < 1
-    g = componentsFT.GPU_2S('g', mediaFT.Syncrude(), F0_Xi=r.F1.Xi)
+    g = componentsFT.GPU_2S('g', mediaFT.Syncrude())
+    g.F0.Xi = r.F1.Xi
     g.run_sol()
     assert g.F2.n == pytest.approx(r.F1.Xi[3]) and np.isfinite(g.W)
 
@@ -211,7 +214,8 @@ def test_rstoic_heat_duty_is_the_enthalpy_balance():
     """RStoic used Q = n1*h1 - (n0*n0 + nH*nH) (flow squared); now flow times enthalpy."""
     x = np.zeros(55)
     x[[0, 2, 5, 6, 7, 8, 10]] = 0.3, 0.2, 0.2, 0.1, 0.1, 0.05, 0.05
-    r = reactorsFT.RStoic('r', mediaFT.Syncrude(), F0_n=1.0, F0_Xi=x)
+    r = reactorsFT.RStoic('r', mediaFT.Syncrude())
+    r.F0.n, r.F0.Xi = 1.0, x
     assert r.run_sol().success
     assert r.FH0.n == pytest.approx((0.1*1 + 0.1*2 + 0.05*3)/3)            # steam for C2-C4 -> CH4 + CO
     assert r.Q == pytest.approx(r.F1.n*r.F1.h - r.F0.n*r.F0.h - r.FH0.n*r.FH0.h, abs=1e-12)
@@ -282,3 +286,16 @@ def test_raoult_flash_above_the_dew_point_and_adiabatic(ft_effluent):
     assert adi.run_sol().success and adi.Q == pytest.approx(0.0, abs=1e-6)
     with pytest.raises(ValueError):
         componentsFT.Flash('x', med, T=300.0, Q=0.0)
+
+
+def test_ft_units_accept_the_former_state_keywords():
+    x = mediaFT.Syncrude()._reference_X
+    new = reactorsFT.RStoic('n', mediaFT.Syncrude())
+    new.F0.n, new.F0.Xi = 1.0, x
+    with pytest.warns(CelesteDeprecationWarning):
+        old = reactorsFT.RStoic('o', mediaFT.Syncrude(), F0_n=1.0, F0_Xi=x)
+    new.run_sol(), old.run_sol()
+    assert old.Q == pytest.approx(new.Q, rel=1e-12)
+    with pytest.warns(CelesteDeprecationWarning):
+        m = flowFT.Mixer('m', mediaFT.LightGas(), T=350.0)
+    assert m.F2.T == 350.0
