@@ -8,6 +8,8 @@ version may notice.
 
 ### Added
 
+- **`SysBase.pfd()`**: interactive process flow diagram (layered layout, orthogonal streams, recycles dashed;
+  stream state and composition and unit duties on hover) as one self-contained HTML file
 - **Design specifications**: `SysBase.add_spec(target, value, vary=..., bounds=...)`, `specs`, `clear_specs()`,
   `solve_specs()` - targets and inputs as dotted paths (or a function of the system); docs/flowsheets.md
 - **Declared flowsheets**: `SysBase.link(outlet, inlet)` lists the streams once; `solve_order()` /

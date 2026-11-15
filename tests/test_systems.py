@@ -334,3 +334,25 @@ def test_design_specs():
     loop = ProcessBoxes.MethanolLoop('m')
     loop.add_spec('carbon_efficiency', 0.92, vary='split.split', bounds=(0.9, 0.999))
     assert loop.solve_specs().success and loop.carbon_efficiency == pytest.approx(0.92, abs=1e-7)
+
+
+def test_pfd(tmp_path):
+    import json
+    import re
+    from celeste.CSL.systems import ProcessBoxes
+    loop = ProcessBoxes.MethanolLoop('m')
+    drawn = loop.pfd()                                   # declared flowsheet: drawn without solving
+    assert '8 units, 8 streams, 1 recycle' in drawn.html and 'class="stream recycle"' in drawn.html
+    loop.run_sol()
+    path = loop.pfd(str(tmp_path/'m.html')).save(str(tmp_path/'m2.html'))
+    page = open(path, encoding='utf-8').read()
+    tips = json.loads(re.search(r'const TIPS = (\{.*?\});\n', page).group(1))
+    stream = next(v for v in tips.values() if 'split.F1' in v and 'mix.F1' in v)
+    assert 'mole fractions' in stream and 'CH3OH' in stream
+    assert any('Ex loss' in v and 'MeOH' in v for v in tips.values())
+    assert '<iframe srcdoc=' in drawn._repr_html_()
+    soc = SOCsystem.SOCsysRecupe('s', I=-50.0)           # hand-written seq_sol: drawn from the last run
+    with pytest.raises(ValueError, match='nothing to draw'):
+        soc.pfd()
+    soc.run_sol()
+    assert '2 recycle' in soc.pfd().html

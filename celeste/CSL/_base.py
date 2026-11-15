@@ -11,6 +11,7 @@ from ._mixin.analysis import ReportingMixin
 from ._mixin.recycle import RecycleMixin
 from ._mixin.flowsheet import FlowsheetMixin
 from ._mixin.specs import SpecMixin
+from ._mixin.pfd import PFDMixin
 
 from typing import Any
 from numpy._typing._array_like import NDArray
@@ -176,7 +177,7 @@ class ModelBase(Base):
         return m_in - m_out
 
 
-class SysBase(FlowsheetMixin, SpecMixin, GraphMixin, ReportingMixin, IntrospectionMixin, RecycleMixin, ModelBase):
+class SysBase(FlowsheetMixin, SpecMixin, PFDMixin, GraphMixin, ReportingMixin, IntrospectionMixin, RecycleMixin, ModelBase):
     _is_system=True
     def __init__(self, args): # name,
         super().__init__(args) #
