@@ -96,3 +96,75 @@ def test_stream_replace():
     assert float(dH) == pytest.approx(float(feed.n*ideal.heat_capacity(700.0, X_AIR, AIR)), rel=1e-10)
     with pytest.raises(TypeError, match="no field"):
         feed.replace(Q=1.0)
+
+
+# ---- SOC and the SOEC flowsheet ------------------------------------------------------------------------
+import equinox as eqx  # noqa: E402
+
+from celeste.CSL import electrochem, equilibrium  # noqa: E402
+
+
+@pytest.mark.parametrize('I, spec, X0', [
+    (-50.0, dict(T=1073.15), None),                                                  # electrolysis
+    (20.0, dict(T=1073.15), [0.5, 0.05, 0.05, 0.05, 0.35, 1e-5]),                    # fuel cell, with reforming
+    (-50.0, dict(Q=0.0), None),                                                      # adiabatic
+])
+def test_soc_matches_csl(I, spec, X0):
+    ref = electrochem.SOC('s', media.Fuel_CH4(), media.Air(), I=I, Ncells=100, **spec)
+    if X0 is not None:
+        ref.F0.Xi = np.array(X0)
+    ref.run_sol()
+    fuel = units.Stream(ref.F0.n, ref.F0.T, ref.F0.P, np.asarray(ref.F0.Xi))
+    air = units.Stream(ref.A0.n, ref.A0.T, ref.A0.P, np.asarray(ref.A0.Xi))
+    soc = units.SOC(FUEL, AIR, I=I, Ncells=100.0, **spec)
+    f_out, a_out, W, Q = eqx.filter_jit(lambda s, f, a: s(f, a))(soc, fuel, air)
+    assert float(W) == pytest.approx(ref.W, rel=1e-10) and float(f_out.T) == pytest.approx(ref.F1.T, rel=1e-12)
+    assert float(Q) == pytest.approx(ref.Q, abs=1e-9)
+    assert np.allclose(np.asarray(f_out.x), ref.F1.Xi, atol=1e-12)
+    assert np.max(np.abs(np.asarray(soc.residuals(fuel, air, f_out, a_out)))) < 1e-10
+
+
+def test_fuel_residuals_numpy_and_jax_agree():
+    n, n0 = np.array([0.3, 0.01, 0.1, 0.05, 0.5, 0.04]), np.array([0.1, 0.02, 0.1, 0.05, 0.7, 0.04])
+    a = equilibrium.fuel_residuals(n, n0, 1073.15, 2.0, O_in=-0.1)
+    b = equilibrium.fuel_residuals(n, n0, 1073.15, 2.0, O_in=-0.1, xp=jnp)
+    assert np.allclose(a, np.asarray(b), atol=1e-13)
+
+
+def test_units_residuals_vanish_at_their_solution():
+    feed = units.Stream(1.0, 600.0, 1.0, np.array([0.3, 0.05, 0.1, 0.05, 0.45, 0.05]))
+    cold = units.Stream(0.5, 350.0, 1.0, np.array([0.1, 0.0, 0.0, 0.0, 0.9, 0.0]))
+    sep = units.Separator(FUEL, jnp.array([1, 1, 1, 1, 0.1, 1.0]), 320.0)
+    o1, o2, _ = sep(feed)
+    assert np.max(np.abs(np.asarray(sep.residuals(feed, o1, o2)))) < 1e-14
+    spl = units.Splitter(0.3)
+    assert np.max(np.abs(np.asarray(spl.residuals(feed, *spl(feed))))) < 1e-14
+    hx = units.HeatExchanger(FUEL, FUEL, 0.8)
+    h_out, c_out, Q = hx(feed, cold)
+    assert np.max(np.abs(np.asarray(hx.residuals(feed, cold, h_out, c_out)))) < 1e-10
+    assert float(h_out.H(FUEL)) == pytest.approx(float(feed.H(FUEL) - Q), abs=1e-9)
+
+
+def _soec_example():
+    import importlib.util
+    import pathlib
+    path = pathlib.Path(__file__).parents[1]/'examples'/'05_soec_flowsheet.py'
+    spec = importlib.util.spec_from_file_location('soec_flowsheet', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_soec_flowsheet_sequential_and_equation_oriented_agree():
+    ex = _soec_example()
+    plant = ex.SOECPlant()
+    s, passes = eqx.filter_jit(lambda p: p.solve_sm())(plant)
+    assert int(passes) < 100
+    H2 = float(units.flows(s['product'])[0])
+    assert H2 == pytest.approx(-float(plant.soc.n_O), rel=1e-8)          # all hydrogen made leaves as product
+    x0 = ex.SOECPlant.pack(s)
+    assert np.max(np.abs(np.asarray(plant.residuals(x0)))) < 1e-8          # SM solution satisfies the EO equations
+    s_eo = eqx.filter_jit(lambda p, x: p.solve_eo(x))(plant, x0)
+    assert np.max(np.abs(np.asarray(plant.residuals(ex.SOECPlant.pack(s_eo))))) < 1e-12
+    _, I = eqx.filter_jit(lambda x: ex.solve_eo_with_spec(x, 0.09))(x0)
+    assert float(I) == pytest.approx(-0.09*2*96485.0/300.0, rel=1e-8)

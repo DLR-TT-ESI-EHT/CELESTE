@@ -56,10 +56,32 @@ jax.jit(jax.vmap(methane_slip, (0, None)))(jnp.linspace(500., 1000., 50), 10.0) 
 jax.grad(methane_slip)(700.0, 10.0)                                               # sensitivity
 ```
 
-Available prototypes: `Stream`, `Heater`, `Compressor`, `Mixer`,
-`ShiftReformingEquilibrium`, and the solver `newton` (damped Newton with an
-exact Jacobian; derivatives of the solution by the implicit function theorem).
-They are tested against their CSL counterparts (`tests/test_jx_units.py`).
+Available units: `Stream`, `Heater`, `Compressor`, `Mixer`, `Splitter`,
+`Separator`, `HeatExchanger` (effectiveness recuperator), `ShiftReformingEquilibrium`,
+`SOC`, and the solver `newton` (damped Newton with an exact Jacobian; derivatives
+of the solution by the implicit function theorem). They are tested against their
+CSL counterparts (`tests/test_jx_units.py`); the `SOC` reproduces the CSL stack
+(isothermal, adiabatic, electrolysis and fuel cell, 'mean' Nernst voltage) to
+round-off, because both evaluate the same `equilibrium.fuel_residuals`, written
+once for NumPy and `jax.numpy` (`xp=` argument).
+
+Every unit has two faces:
+
+- **calling it** solves it: inlets in, outlets (and duties) out - for
+  sequential-modular flowsheets;
+- **`residuals(inlets..., outlets...)`** returns its equations with the outlets
+  as unknowns - for equation-oriented flowsheets. No unit solve is nested in
+  them (except the voltage of an adiabatic SOC).
+
+`examples/05_soec_flowsheet.py` builds an SOEC system (steam feed, hydrogen
+recycle, recuperator, heater, stack, water knock-out) both ways:
+
+| | |
+|---|---|
+| sequential modular | the units in flow order, tear streams converged by substitution inside one compiled function (`lax.while_loop`); 14 passes, about 1 ms once compiled |
+| equation oriented | the 66 stream variables as unknowns, all unit equations at once, Newton with the exact Jacobian, started from the SM solution |
+| design specification | one more unknown (the current) and one more equation (the hydrogen product), solved in the same Newton iteration - no outer loop |
+| sweeps | `jax.vmap` of the SM solve over the current |
 
 Differences to the CSL worth knowing:
 
@@ -132,8 +154,8 @@ replaces the Jacobian once the units are available as pure functions.
    sensitivities and property work. Nothing in existing models has to change.
 2. **Port units one at a time** into `celeste.jx.units`, each with a test
    against its CSL counterpart, starting with explicit units (splitter, valve,
-   black-box separators), then the equilibrium and yield reactors, then SOC and
-   AEL. Formulating reactors in reaction extents removes most convergence
+   black-box separators), then the equilibrium and yield reactors, then AEL
+   (SOC, splitter, separator and recuperator are done). Formulating reactors in reaction extents removes most convergence
    problems.
 3. **Add what the prototype lacks before relying on it:**
    - exergy and entropy generation as pure functions (`Thermo_PR.exergy` shows

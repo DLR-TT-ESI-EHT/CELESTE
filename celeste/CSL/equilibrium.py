@@ -84,20 +84,29 @@ FUEL_ELEMENTS = np.array([[0, 1, 1, 1, 0, 0],
                           [0, 0, 0, 0, 0, 2]])
 
 
-def fuel_residuals(n, n0, T, P, O_in: float = 0.0, H_in: float = 0.0):
+def fuel_residuals(n, n0, T, P, O_in: float = 0.0, H_in: float = 0.0, xp=np):
     """
     Equations of a fuel-side stream (H2, CH4, CO2, CO, H2O, N2) at shift and reforming equilibrium:
     the C, H, O, N balances between the inlet flows ``n0`` and the outlet flows ``n`` (relative to the
     element inflow; ``O_in`` and ``H_in`` are oxygen and hydrogen atoms added from elsewhere, mol/s), then the water-gas shift and
     methane reforming equilibria as ln(Q/K), at T [K] and P [bar].
+
+    ``xp`` is the array module: ``numpy`` (default) or ``jax.numpy`` - the same equations serve the CSL units
+    and the Equinox units of ``celeste.jx.units``.
     """
-    n, n0 = np.asarray(n, dtype=float), np.asarray(n0, dtype=float)
-    balances = (FUEL_ELEMENTS @ n - FUEL_ELEMENTS @ n0 - np.array([0, H_in, O_in, 0]))/np.maximum(FUEL_ELEMENTS @ n0, 1e-30)
-    H2, CH4, CO2, CO, H2O = np.log(n[:5]/n.sum())
-    return np.concatenate((balances, [
-        CO2 + H2 - CO - H2O - ln_K('WGS', T),                          # CO + H2O <-> CO2 + H2
-        CO + 3*H2 + 2*np.log(P) - CH4 - H2O - ln_K('MSR', T),          # CH4 + H2O <-> CO + 3 H2
-    ]))
+    n, n0 = xp.asarray(n, dtype=float), xp.asarray(n0, dtype=float)
+    E = xp.asarray(FUEL_ELEMENTS, dtype=float)
+    added = xp.stack([0.0, H_in, O_in, 0.0])
+    balances = (E @ n - E @ n0 - added)/xp.maximum(E @ n0, 1e-30)
+    if xp is np:
+        lnK_wgs, lnK_msr = ln_K('WGS', T), ln_K('MSR', T)
+    else:
+        lnK_wgs, lnK_msr = xp.log(K_eq(T, 'WGS', xp.exp)), xp.log(K_eq(T, 'MSR', xp.exp))
+    H2, CH4, CO2, CO, H2O = (xp.log(n[:5]/n.sum()))
+    return xp.concatenate((balances, xp.stack([
+        CO2 + H2 - CO - H2O - lnK_wgs,                          # CO + H2O <-> CO2 + H2
+        CO + 3*H2 + 2*xp.log(P) - CH4 - H2O - lnK_msr,          # CH4 + H2O <-> CO + 3 H2
+    ])))
 
 
 def K_WGS(T, exp=np.exp):

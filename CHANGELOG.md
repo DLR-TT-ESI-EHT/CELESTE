@@ -8,6 +8,10 @@ version may notice.
 
 ### Added
 
+- **`celeste.jx.units`**: `SOC` (same equations and results as `CSL.electrochem.SOC`), `Splitter`, `Separator`,
+  `HeatExchanger`; every unit has `residuals(...)` for equation-oriented flowsheets. `CSL.equilibrium.fuel_residuals`
+  takes `xp=` (NumPy or `jax.numpy`). Example `examples/05_soec_flowsheet.py`: an SOEC system solved sequential
+  modular and equation oriented (with a design specification)
 - **Type hints** on the public signatures of the models (`celeste._types.Array` for float arrays); `pyright` clean
 - **`CSL.heat.heater_to`** (heater to a given outlet temperature, optional change of medium) and **`SysBase.solve(*units)`**,
   used to shorten the system boxes (`ElectBox`, `SOCsystem`, `ProcessBoxes`); results unchanged
