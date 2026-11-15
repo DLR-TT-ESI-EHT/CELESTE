@@ -237,3 +237,67 @@ def test_compression_train_with_other_compressors_and_pressure_ratio():
     ref = ComponentModels.SimpleCompressorSys('s', 1.0, None, 300.0, 1.0, 5.0, eff=0.8)
     ref.run_sol()
     assert cs.compressor.F1.T > ref.compressor.F1.T
+
+
+# ---- flowsheets declared by their streams --------------------------------------------------------------
+
+class _TwoRecycles(SysBase):
+    """feed -> mix1 -> mix2 -> heater -> split2 -> split1 -> product; split2.F1 -> mix2, split1.F1 -> mix1."""
+    def __init__(self, name, declared=True):
+        super().__init__(locals())
+        gas = media.Air()
+        self.feed = flow.SourceM(name + '.feed', gas, F1_n=1.0, F1_Xi=np.array([0.21, 0.79]), F1_T=300.0, F1_P=1.0)
+        self.mix1 = flow.Mixer(name + '.mix1', gas)
+        self.mix2 = flow.Mixer(name + '.mix2', gas)
+        self.heater = heat.Heater(name + '.heater', gas)
+        self.heater.F1.T = 500.0
+        self.split2 = flow.Splitter(name + '.split2', gas, Split=0.4)
+        self.split1 = flow.Splitter(name + '.split1', gas, Split=0.3)
+        self.out = flow.Sink(name + '.out', gas)
+        for f in (self.mix1.F1, self.mix2.F1):
+            f.n, f.T = 1e-6, 300.0
+        if declared:
+            self.link(self.feed.F1, self.mix1.F0)
+            self.link(self.mix1.F2, self.mix2.F0)
+            self.link(self.mix2.F2, self.heater.F0)
+            self.link(self.heater.F1, self.split2.F0)
+            self.link(self.split2.F2, self.split1.F0)
+            self.link(self.split2.F1, self.mix2.F1)
+            self.link(self.split1.F1, self.mix1.F1)
+            self.link(self.split1.F2, self.out.F0)
+
+    def hand_pass(self):
+        self.connect_seq(self.feed.F1, self.mix1.F0)
+        self.solve(self.mix1)
+        self.connect_seq(self.mix1.F2, self.mix2.F0)
+        self.solve(self.mix2)
+        self.connect_seq(self.mix2.F2, self.heater.F0)
+        self.solve(self.heater)
+        self.connect_seq(self.heater.F1, self.split2.F0)
+        self.solve(self.split2)
+        self.connect_seq(self.split2.F2, self.split1.F0)
+        self.solve(self.split1)
+        self.connect_seq(self.split1.F2, self.out.F0)
+
+
+def test_declared_flowsheet_generates_order_and_tears():
+    sys_ = _TwoRecycles('t')
+    plan = sys_.solve_order()
+    assert [len(step.units) for step in plan] == [1, 5, 1]
+    assert len(plan[1].tears) == 1 and 'loop' in sys_.print_solve_order()
+    sys_.run_sol()
+    # every recycle closed: out = feed, and the heater carries feed/(0.7*0.6) ... checked against a hand solution
+    ref = _TwoRecycles('r', declared=False)
+    ref.Recycle_Tear([ref.split2.F1, ref.split1.F1], [ref.mix2.F1, ref.mix1.F1], flow_method='hand_pass', eps=1e-10)
+    assert sys_.out.F0.n == pytest.approx(1.0, rel=1e-8) and sys_.heater.F0.n == pytest.approx(ref.heater.F0.n, rel=1e-8)
+    assert sys_.heater.F0.n == pytest.approx(1.0/(0.6*0.7), rel=1e-7)
+    assert sys_.EBcheck() == pytest.approx(0.0, abs=1e-6)
+    assert 't.split1 --F1_F1--> t.mix1' in sys_.create_graph('mermaid', save=False)
+
+
+def test_declared_flowsheet_rejects_foreign_flanges():
+    sys_ = _TwoRecycles('t')
+    other = flow.Sink('x', media.Air())
+    sys_.link(sys_.split1.F2, other.F0)
+    with pytest.raises(ValueError, match='does not belong'):
+        sys_.solve_order()
