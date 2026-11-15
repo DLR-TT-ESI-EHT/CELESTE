@@ -59,10 +59,12 @@ filterwarnings = [
 allow-direct-references=true
 
 
-# Type checking without annotations: the models assign their flanges and parameters dynamically, so the
-# checks that need declared attributes (and the numpy / pandas overload checks) are off. Undefined names,
-# unused coroutines, bad syntax and the like stay on.
+# Type checking: the models assign their flanges and parameters dynamically, so the checks that need declared
+# attributes (and the numpy / pandas overload checks) are off. Undefined names, unused coroutines, bad syntax
+# and the like stay on. "standard" mode also for basedpyright, whose default ("recommended") adds strict rules
+# such as reportUnannotatedClassAttribute and reportImplicitOverride.
 [tool.pyright]
+typeCheckingMode = "standard"
 include = ["celeste"]
 reportAttributeAccessIssue = false
 reportOptionalMemberAccess = false
