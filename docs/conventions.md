@@ -239,5 +239,5 @@ is no version number in the source tree. Between releases the version is
 Public signatures carry type hints (`name: str`, `T: float`, `Medium: media.Medium_Base`, `-> None`, ...) so that
 editors and pyright can help; `celeste._types.Array` is the alias for arrays of floats. Hints stay light: no
 `# type:` comments or casts to silence the checker. The models set their flanges and parameters dynamically, so
-`[tool.pyright]` in `pyproject.toml` switches off the checks that need declared attributes; undefined names,
+`[tool.pyright]` in `pyproject.toml` (standard mode, also read by basedpyright) switches off the checks that need declared attributes; undefined names,
 unreachable code and syntax stay on. `pyright` reports 0 errors.
