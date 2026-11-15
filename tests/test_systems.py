@@ -301,3 +301,36 @@ def test_declared_flowsheet_rejects_foreign_flanges():
     sys_.link(sys_.split1.F2, other.F0)
     with pytest.raises(ValueError, match='does not belong'):
         sys_.solve_order()
+
+
+def test_design_specs():
+    from celeste.CSL import reactors
+    from celeste.CSL.systems import ProcessBoxes
+
+    class Reforming(SysBase):
+        def __init__(self, name):
+            super().__init__(locals())
+            gas = media.Fuel_CH4()
+            self.source1 = flow.SourceM('source1', gas, 1, np.array([0.01, 0.3, 0.2, 1e-5, 0.5, 1e-5]), 973.15, 5.)
+            self.reformer = reactors.MR('reformer', gas, T=973.15)
+            self.sink1 = flow.Sink('sink1', gas)
+            self.link(self.source1.F1, self.reformer.F0)
+            self.link(self.reformer.F1, self.sink1.F0)
+
+    r = Reforming('r')
+    r.add_spec('sink1.F0.n', 2.0, vary='source1.F1.n', bounds=(0.1, 10.0))
+    assert r.solve_specs().success and r.sink1.F0.n == pytest.approx(2.0, rel=1e-8)
+    assert list(r.specs['vary']) == ['source1.F1.n'] and r.specs['current'][0] == pytest.approx(2.0)
+    # two specifications at once, one of them a function of the system
+    r.add_spec(lambda s: s.sink1.F0.Xi[0], 0.45, vary='reformer.T', bounds=(800.0, 1200.0), name='H2 fraction')
+    assert r.solve_specs().success
+    assert r.sink1.F0.n == pytest.approx(2.0, rel=1e-7) and r.sink1.F0.Xi[0] == pytest.approx(0.45, rel=1e-7)
+    r.clear_specs()
+    with pytest.raises(ValueError):
+        r.solve_specs()
+    with pytest.raises(AttributeError):
+        r.add_spec('sink1.F0.n', 1.0, vary='source1.nothing')
+    # a recycle loop: purge fraction for a given carbon efficiency
+    loop = ProcessBoxes.MethanolLoop('m')
+    loop.add_spec('carbon_efficiency', 0.92, vary='split.split', bounds=(0.9, 0.999))
+    assert loop.solve_specs().success and loop.carbon_efficiency == pytest.approx(0.92, abs=1e-7)
