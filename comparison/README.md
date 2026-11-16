@@ -28,7 +28,7 @@ recorded as results rather than raised.
   `turbomachinery`, so the SOEC/CO2/AEL systems, `Ncomp` and all FT cases are errors there.
 - Also errors on `main`: `SOCBasicSys`, `SimpleCompressorSys`, `SimpleHeaterSys`, `gpu_3s`, the polytropic compressors
   (they do not exist there).
-- `SOCsysRecupe_fuel_cell` does not converge on either version; treat it as unreliable.
+- `SOCsysRecupe_fuel_cell` runs at I=15 A (39 % hydrogen utilisation); the fuel feed (0.1 mol/s H2) limits the current to about 19 A per cell.
 
 ## Expected differences
 
