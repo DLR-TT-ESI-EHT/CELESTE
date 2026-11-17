@@ -40,6 +40,23 @@ class FlowsheetMixin:
         self._streams.append((outlet, inlet))
         self.__dict__.pop('_plan', None)
 
+    def links_from_run(self, declare: bool = True) -> list:
+        """
+        The streams made by ``connect_seq`` (and by ``Recycle_Tear``) in the runs so far, as (outlet, inlet) flange
+        pairs between units of this system, in the order they were made. With ``declare=True`` they replace the
+        declared streams, so a hand-written ``seq_sol`` run once gives the declared flowsheet (``solve_order``,
+        ``auto_sol``, tear streams, ``pfd``) without writing the ``link`` calls again. Connections made inside a
+        subsystem (a stage of a cascade, say) belong to that subsystem: call it there.
+        """
+        owners = self._owner_map()
+        pairs = [(a, b) for a, b in self.__dict__.get('_links', {}) if id(a) in owners and id(b) in owners]
+        if declare:
+            self.__dict__['_streams'] = []
+            self.__dict__.pop('_plan', None)
+            for outlet, inlet in pairs:
+                self.link(outlet, inlet)
+        return pairs
+
     @property
     def streams(self) -> list:
         """Declared streams as (outlet, inlet) flange pairs."""

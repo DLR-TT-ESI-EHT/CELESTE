@@ -16,6 +16,8 @@ version may notice.
   `print_solve_order()` generate the unit order and the tear streams (fewest tears, back streams preferred) and
   `seq_sol`/`run_sol` run them (`auto_sol`). `Recycle_Tear` converges several tear streams together (lists of
   flanges). `MethanolLoop` uses it (same results)
+  `links_from_run()` turns the connections a hand-written `seq_sol` made (`connect_seq`, `Recycle_Tear`) into those
+  declarations, so both ways of writing a system give the same order, tears and `pfd`
 - **`celeste.jx.units`**: `SOC` (same equations and results as `CSL.electrochem.SOC`), `Splitter`, `Separator`,
   `HeatExchanger`; every unit has `residuals(...)` for equation-oriented flowsheets. `CSL.equilibrium.fuel_residuals`
   takes `xp=` (NumPy or `jax.numpy`). Example `examples/05_soec_flowsheet.py`: an SOEC system solved sequential

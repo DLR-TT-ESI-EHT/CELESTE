@@ -295,6 +295,19 @@ def test_declared_flowsheet_generates_order_and_tears():
     assert 't.split1 --F1_F1--> t.mix1' in sys_.create_graph('mermaid', save=False)
 
 
+def test_links_from_a_hand_written_run_give_the_declared_flowsheet():
+    ref = _TwoRecycles('r', declared=False)
+    ref.Recycle_Tear([ref.split2.F1, ref.split1.F1], [ref.mix2.F1, ref.mix1.F1], flow_method='hand_pass', eps=1e-10)
+    pairs = ref.links_from_run()
+    assert len(pairs) == 8 and len(ref.streams) == 8
+    declared = _TwoRecycles('d')
+    assert [len(step.units) for step in ref.solve_order()] == [len(step.units) for step in declared.solve_order()]
+    ref.mix1.F1.n, ref.mix2.F1.n = 1e-6, 1e-6
+    ref.run_sol()                                          # generated order and tears from the recorded streams
+    declared.run_sol()
+    assert ref.heater.F0.n == pytest.approx(declared.heater.F0.n, rel=1e-8)
+
+
 def test_declared_flowsheet_rejects_foreign_flanges():
     sys_ = _TwoRecycles('t')
     other = flow.Sink('x', media.Air())

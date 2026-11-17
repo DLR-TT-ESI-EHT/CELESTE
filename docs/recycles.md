@@ -52,6 +52,11 @@ break every loop and orders the units; `print_solve_order()` shows the plan:
 loop with `Recycle_Tear` on its tear streams. Among equally small sets of tears
 the streams that run back against the flow (towards the feeds) are preferred.
 `create_graph` draws a declared flowsheet without solving it.
+
+A system that already has a hand-written `seq_sol` does not need the `link` calls typed again: run it once and
+`links_from_run()` declares the streams from the `connect_seq` and `Recycle_Tear` calls of that run
+(in the order they were made), after which `solve_order()`, `auto_sol()` and `pfd()` work as for a declared flowsheet.
+Connections made inside a subsystem belong to the subsystem: call `links_from_run()` on it.
 `ProcessBoxes.MethanolLoop` is written this way; systems with their own
 `seq_sol` are unchanged.
 
