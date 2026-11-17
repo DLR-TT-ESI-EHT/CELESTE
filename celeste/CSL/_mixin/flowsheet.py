@@ -40,6 +40,25 @@ class FlowsheetMixin:
         self._streams.append((outlet, inlet))
         self.__dict__.pop('_plan', None)
 
+    def _run_streams(self) -> list:
+        """
+        The recorded connections between units of this system. A flange of the system that a run uses as the
+        iterate of a tear stream (stack outlet -> ``guess`` -> next unit) is not a stream of its own: the two
+        recorded connections through it are joined into one (stack outlet -> next unit).
+        """
+        owners = self._owner_map()
+        own = {id(f) for f in self.get_Flanges()}
+        pairs = [(a, b) for a, b in self.__dict__.get('_links', {}) if id(a) in owners and id(b) in owners]
+        into = {id(b): a for a, b in pairs if id(b) in own and id(a) not in own}
+        out_of = {id(a) for a, b in pairs if id(a) in own and id(b) not in own}
+        through = set(into) & out_of
+        streams = []
+        for a, b in pairs:
+            if id(b) in through:
+                continue
+            streams.append((into[id(a)] if id(a) in through else a, b))
+        return streams
+
     def links_from_run(self, declare: bool = True) -> list:
         """
         The streams made by ``connect_seq`` (and by ``Recycle_Tear``) in the runs so far, as (outlet, inlet) flange
@@ -48,8 +67,7 @@ class FlowsheetMixin:
         ``auto_sol``, tear streams, ``pfd``) without writing the ``link`` calls again. Connections made inside a
         subsystem (a stage of a cascade, say) belong to that subsystem: call it there.
         """
-        owners = self._owner_map()
-        pairs = [(a, b) for a, b in self.__dict__.get('_links', {}) if id(a) in owners and id(b) in owners]
+        pairs = self._run_streams()
         if declare:
             self.__dict__['_streams'] = []
             self.__dict__.pop('_plan', None)

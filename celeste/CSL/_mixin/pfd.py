@@ -133,7 +133,7 @@ class PFDMixin:
     def _drawn_streams(self) -> list:
         if self.streams:
             return self.streams
-        links = list(self.__dict__.get('_links', {}))
+        links = self._run_streams()
         if not links:
             raise ValueError(f"{self.name}: nothing to draw - run the system once, or declare its streams with link()")
         return links

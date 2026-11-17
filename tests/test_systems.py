@@ -308,6 +308,22 @@ def test_links_from_a_hand_written_run_give_the_declared_flowsheet():
     assert ref.heater.F0.n == pytest.approx(declared.heater.F0.n, rel=1e-8)
 
 
+def test_iterate_flange_of_the_system_is_not_a_stream_of_its_own():
+    class Chain(SysBase):
+        def __init__(self, name):
+            super().__init__(locals())
+            gas = media.Air()
+            self.a = heat.Heater(name + '.a', gas)
+            self.b = heat.Heater(name + '.b', gas)
+            self.guess = interfaces.Flange(name + '.guess', gas)          # iterate of a tear stream: a.F1 -> guess -> b.F0
+            self.getObjs()
+
+    chain = Chain('c')
+    chain.connect_seq(chain.a.F1, chain.guess)
+    chain.connect_seq(chain.guess, chain.b.F0)
+    assert chain.links_from_run() == [(chain.a.F1, chain.b.F0)]
+
+
 def test_declared_flowsheet_rejects_foreign_flanges():
     sys_ = _TwoRecycles('t')
     other = flow.Sink('x', media.Air())
