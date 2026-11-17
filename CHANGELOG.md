@@ -12,6 +12,8 @@ version may notice.
   stream state and composition and unit duties on hover) as one self-contained HTML file
 - **Design specifications**: `SysBase.add_spec(target, value, vary=..., bounds=...)`, `specs`, `clear_specs()`,
   `solve_specs()` - targets and inputs as dotted paths (or a function of the system); docs/flowsheets.md
+- **SOC ASR temperature**: `SOC(..., ASR_T='cell')` takes the ASR at the mean of the fuel and air stream temperature
+  (linear in the charge); the default `'fuel'` is the previous behaviour (no results change)
 - **Declared flowsheets**: `SysBase.link(outlet, inlet)` lists the streams once; `solve_order()` /
   `print_solve_order()` generate the unit order and the tear streams (fewest tears, back streams preferred) and
   `seq_sol`/`run_sol` run them (`auto_sol`). `Recycle_Tear` converges several tear streams together (lists of
