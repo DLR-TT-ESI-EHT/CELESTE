@@ -23,7 +23,7 @@ class ReportingMixin:
                 'MW': v.F0.mw,
                 'Exth': v.Exth
             }
-        return self._table(heat_tab, ['CP', 'T0', 'T1', 'deltaT', 'Q', 'm', 'cp', 'MW', 'Exth']).sort_values('Q')
+        return pd.DataFrame(heat_tab).transpose().sort_values('Q')
 
     @staticmethod
     def _table(records: dict, columns: list) -> pd.DataFrame:
