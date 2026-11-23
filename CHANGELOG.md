@@ -26,7 +26,7 @@ version may notice.
   takes `xp=` (NumPy or `jax.numpy`). Example `examples/05_soec_flowsheet.py`: an SOEC system solved sequential
   modular and equation oriented (with a design specification)
 - **Type hints** on the public signatures of the models (`celeste._types.Array` for float arrays); `pyright` clean
-- **`create_graph`** (Mermaid and NetworkX) names the units relative to the system (`HEX_F`, not `socsys.HEX_F`)
+- **`create_graph`** (Mermaid and NetworkX) names the units relative to the system (`HEX_F`, not `socsys.HEX_F`); the flanges of the system are nodes of their own (`F0 --C0--> HEX_F`)
 - **`CSL.heat.heater_to`** (heater to a given outlet temperature at the inlet pressure, optional change of medium) and **`SysBase.solve(*units)`**,
   used to shorten the system boxes (`ElectBox`, `SOCsystem`, `ProcessBoxes`); results unchanged
 - Transport properties (`mu`, `k`, `Pr`) for the real-fluid `Thermo_PR` media
