@@ -20,7 +20,7 @@ import numpy as np
 
 from ..jx import nasa as _nasa
 
-__all__ = ["K_eq", "ln_K", "fuel_residuals", "FUEL_SPECIES", "FUEL_ELEMENTS", "K_WGS", "K_rWGS", "K_MSR", "K_PSR", "K_NH3", "K_MeOH_CO2", "K_MeOH_CO",
+__all__ = ["K_eq", "ln_K", "fuel_residuals", "FUEL_SPECIES", "FUEL_ELEMENTS", "FUEL_NU", "fuel_equilibrium", "K_WGS", "K_rWGS", "K_MSR", "K_PSR", "K_NH3", "K_MeOH_CO2", "K_MeOH_CO",
            "K_WGS_fit", "K_MSR_fit", "K_rWGS_Graaf", "K_MeOH_CO2_Graaf", "K_MeOH_CO_Graaf"]
 
 _R_FIT = 8.314  # J/mol/K, value used when the fits were made
@@ -82,6 +82,24 @@ FUEL_ELEMENTS = np.array([[0, 1, 1, 1, 0, 0],
                           [2, 4, 0, 0, 2, 0],
                           [0, 0, 2, 1, 1, 0],
                           [0, 0, 0, 0, 0, 2]])
+
+
+#: stoichiometry of the two reactions of the fuel side (rows: water-gas shift, methane reforming; columns: FUEL_SPECIES)
+#: n = n0 + xi @ FUEL_NU, with xi = (CO2 formed, CH4 converted)
+FUEL_NU = np.array([[1, 0, 1, -1, -1, 0],         # CO + H2O <-> CO2 + H2
+                    [3, -1, 0, 1, -1, 0]])        # CH4 + H2O <-> CO + 3 H2
+
+
+def fuel_equilibrium(n, T, P):
+    """
+    Distance from shift and reforming equilibrium of the flows ``n`` (FUEL_SPECIES) at T [K] and P [bar]:
+    ``K*x_CO*x_H2O - x_CO2*x_H2`` (WGS) and ``K*x_CH4*x_H2O - x_CO*x_H2^3*P^2`` (MSR), that is K - Q multiplied by the
+    reactant fractions, so that trace species do not divide.
+    """
+    x = np.asarray(n, dtype=float)/np.sum(n)
+    H2, CH4, CO2, CO, H2O = x[:5]
+    return np.array([np.exp(ln_K('WGS', T))*CO*H2O - CO2*H2,
+                     np.exp(ln_K('MSR', T))*CH4*H2O - CO*H2**3*P**2])
 
 
 def fuel_residuals(n, n0, T, P, O_in: float = 0.0, H_in: float = 0.0, xp=np):

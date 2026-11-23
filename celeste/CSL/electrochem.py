@@ -22,9 +22,10 @@ class _FuelStack(ModelBase):
     the equations and their solution, is written once here.
 
     System of equations (``Eqs``):
-        unknowns:  ln of the fuel outlet flows of H2, CH4, CO2, CO, H2O, N2   (+ T_out when Q is specified)
-        equations: C, H, O, N balances, WGS and MSR equilibrium             (+ energy balance)
-    Solving for the logarithms keeps every flow positive, also for trace species.
+        unknowns:  extents of the water-gas shift and of methane reforming  (+ T_out when Q is specified)
+        equations: WGS and MSR equilibrium                                   (+ energy balance)
+    The fuel outlet follows from the extents: the feed, plus the species change of the charge transfer
+    (``fuel_transfer``), plus the two reactions (``eq.FUEL_NU``), so the element balances hold by construction.
 
     Energy specification (one of them; ``stack.T = ...`` / ``stack.Q = ...`` switch it on an existing model and
     select the matching ``Eqs`` / ``f_sol``):
@@ -38,12 +39,13 @@ class _FuelStack(ModelBase):
         'streams':  Gibbs energy difference of the streams
 
     Hooks of a stack class:
-        ``fuel_transfer(lam)``  atoms added to the fuel side after the fraction lam of the charge: dict(O_in=, H_in=)
+        ``fuel_transfer(lam)``  change of the fuel species flows [mol/s] by the charge transfer after the fraction lam of the charge
         ``air_flows(lam)``      air-side species flows [mol/s] after the fraction lam of the charge
         ``nernst_x(nf, na)``    mole fractions (H2, H2O, O2) entering the Nernst potential from fuel and air flows
         ``I_ion``               ionic current [A] carried through the electrolyte (all cells)
     '''
     ELEMENTS = eq.FUEL_ELEMENTS                       # rows C, H, O, N
+    _H2, _H2O = np.eye(6)[0], np.eye(6)[4]            # unit vectors of the fuel species
 
     def __init__(self, name: str, MediumF: media.Medium_Base, MediumA: media.Medium_Base, T_in, P_in, T, Q, V_model, n_nodes, **params):
         if V_model not in ('mean', 'outlet', 'average', 'streams'):
@@ -72,7 +74,7 @@ class _FuelStack(ModelBase):
     def T(self, value: float) -> None:
         '''Setting T makes the stack isothermal at T.'''
         self.T_spec, self.Q_spec = value, None
-        self.Eqs, self.f_sol, self.n_unknowns = self.Eqs_T, self.f_sol_T, 6
+        self.Eqs, self.f_sol, self.n_unknowns = self.Eqs_T, self.f_sol_T, 2
 
     @property
     def Q(self) -> float:
@@ -83,7 +85,7 @@ class _FuelStack(ModelBase):
     def Q(self, value: float) -> None:
         '''Setting Q (0 for adiabatic) makes the outlet temperature follow from the energy balance.'''
         self.Q_spec, self.T_spec = value, None
-        self.Eqs, self.f_sol, self.n_unknowns = self.Eqs_Q, self.f_sol_Q, 7
+        self.Eqs, self.f_sol, self.n_unknowns = self.Eqs_Q, self.f_sol_Q, 3
 
     @property
     def P_soc(self) -> float:
@@ -126,11 +128,11 @@ class _FuelStack(ModelBase):
             return np.nan
         nodes, weights = np.polynomial.legendre.leggauss(int(self.n_nodes))
         E = 0.0
-        ln_n = np.log(np.maximum(self.F0.n*np.asarray(self.F0.Xi), 1e-12*self.F0.n))
+        xi = np.zeros(2)
         for lam, w in zip(0.5*(nodes + 1), 0.5*weights):
             T = self.F0.T + lam*(self.F1.T - self.F0.T)
-            ln_n = solvers.solve(lambda u: self.fuel_residuals(np.exp(u), T, lam), ln_n, tol=1e-9, name=self.name).x
-            E += w*self.nernst(T, self.F0.P, *self.nernst_x(np.exp(ln_n), self.air_flows(lam)))
+            xi = solvers.solve(lambda xi: eq.fuel_equilibrium(self.fuel_flows(xi, lam), T, self.F0.P), xi, tol=1e-12, name=self.name).x
+            E += w*self.nernst(T, self.F0.P, *self.nernst_x(self.fuel_flows(xi, lam), self.air_flows(lam)))
         return float(E)
 
     @property
@@ -227,42 +229,40 @@ class _FuelStack(ModelBase):
         return funs.carbonFraction(f.T, f.P, dict(zip(f.Medium.species, f.Xi)))
 
     # ---- equations and solution ---------------------------------------------------------------------
-    def fuel_residuals(self, n, T, lam: float = 1.0):
-        '''Fuel-side equations (``eq.fuel_residuals``) after a fraction lam of the charge.'''
-        return eq.fuel_residuals(n, self.F0.n*np.asarray(self.F0.Xi, dtype=float), T, self.F0.P, **self.fuel_transfer(lam))
+    def fuel_flows(self, xi, lam: float = 1.0):
+        '''Fuel species flows [mol/s] after the fraction lam of the charge, for the reaction extents xi (WGS, MSR).'''
+        return self.F0.n*np.asarray(self.F0.Xi, dtype=float) + self.fuel_transfer(lam) + np.asarray(xi)@eq.FUEL_NU
+
+    def set_outlets(self, xi, T):
+        '''Fuel outlet from the extents; air outlet from the charge passed; both at T and the inlet pressure.'''
+        n, n_air = self.fuel_flows(xi), self.air_flows(1.0)
+        self.F1.n, self.F1.Xi, self.F1.T, self.F1.P = n.sum(), n/n.sum(), T, self.F0.P
+        self.A1.n, self.A1.Xi, self.A1.T, self.A1.P = n_air.sum(), n_air/n_air.sum(), T, self.F0.P
 
     def Eqs_T(self):
-        '''Isothermal: element balances, WGS and MSR equilibrium.'''
-        self.Eq = self.fuel_residuals(self.F1.n*np.asarray(self.F1.Xi), self.F1.T)
+        '''Isothermal: WGS and MSR equilibrium of the outlet.'''
+        self.Eq = eq.fuel_equilibrium(self.F1.n*np.asarray(self.F1.Xi), self.F1.T, self.F1.P)
         return self.Eq
 
     def Eqs_Q(self):
-        '''Specified heat duty: element balances, WGS and MSR equilibrium, energy balance.'''
+        '''Specified heat duty: WGS and MSR equilibrium of the outlet, energy balance.'''
         self.Eq = np.append(self.Eqs_T(), (self.Q - self.Q_spec)/self.F0.n)
         return self.Eq
 
-    def set_outlets(self, n, T):
-        '''Fuel outlet from the mole flows n; air outlet from the charge passed; both at T and the inlet pressure.'''
-        P = self.F0.P
-        self.F1.n, self.F1.Xi, self.F1.T, self.F1.P = n.sum(), n/n.sum(), T, P
-        n_air = self.air_flows(1.0)
-        self.A1.n, self.A1.Xi, self.A1.T, self.A1.P = n_air.sum(), n_air/n_air.sum(), T, P
-
     def f_sol_T(self, x):
-        '''Isothermal stack: x = ln of the fuel outlet flows.'''
-        self.set_outlets(np.exp(x), self.T_spec)
+        '''Isothermal stack: x = extents (WGS, MSR).'''
+        self.set_outlets(x, self.T_spec)
         return self.Eqs_T()
 
     def f_sol_Q(self, x):
-        '''Specified heat duty: x = (ln of the fuel outlet flows, outlet temperature).'''
-        self.set_outlets(np.exp(x[:6]), x[6])
+        '''Specified heat duty: x = (extents, outlet temperature).'''
+        self.set_outlets(x[:2], x[2])
         return self.Eqs_Q()
 
     def run_sol(self, x0=None):
-        '''Solve ``f_sol`` (chosen by T= / Q=), starting from the feed (and the inlet temperature).'''
+        '''Solve ``f_sol`` (chosen by T= / Q=), starting from no reaction (and the inlet temperature).'''
         if x0 is None:
-            ln_feed = np.log(np.maximum(self.F0.n*np.asarray(self.F0.Xi, dtype=float), 1e-12*self.F0.n))
-            x0 = np.append(ln_feed, self.F0.T)[:self.n_unknowns]
+            x0 = np.append(np.zeros(2), self.F0.T)[:self.n_unknowns]
         sol = solvers.solve(self.f_sol, x0, tol=1e-9, name=self.name)
         self.f_sol(sol.x)
         return sol
@@ -313,7 +313,8 @@ class SOC(_FuelStack):
         return j*self.cellArea
 
     def fuel_transfer(self, lam):
-        return dict(O_in=lam*self.n_O)
+        '''O2- turns H2 into H2O (the reverse in electrolysis).'''
+        return lam*self.n_O*(self._H2O - self._H2)
 
     def air_flows(self, lam):
         '''Air-side flows [mol/s] (O2, N2) after a fraction lam of the charge.'''
@@ -399,7 +400,8 @@ class PCC(_FuelStack):
         return j*self.cellArea/self.EffFar if j < 0 else j*self.cellArea*self.EffFar
 
     def fuel_transfer(self, lam):
-        return dict(H_in=-lam*self.n_H)
+        '''H+ leaves the fuel side as H2.'''
+        return -0.5*lam*self.n_H*self._H2
 
     def air_flows(self, lam):
         '''Air-side flows [mol/s] (O2, N2, H2O) after a fraction lam of the charge.'''
