@@ -41,7 +41,7 @@ def test_methanol_loop(kind, efficiency, ratio):
     assert carbon(loop.feed.F1) == pytest.approx(carbon(product) + carbon(loop.purge_out.F0), rel=1e-6)
     streams = loop.pinch_stream_table()
     assert set(streams.index) == {'cond.cooler', 'preheat'}
-    assert 'loop.split --F1_F1--> loop.mix' in loop.create_graph('mermaid', save=False)
+    assert 'split --F1_F1--> mix' in loop.create_graph('mermaid', save=False)
     with pytest.raises(ValueError):
         ProcessBoxes.MethanolLoop('x', reactor='plug-flow')
 

@@ -4,6 +4,11 @@ import networkx as nx
 class GraphMixin:
     """Mermaid and NetworkX graph representations of the system topology."""
 
+    def _node(self, name: str) -> str:
+        """Unit name relative to the system (``socsys.HEX_F`` -> ``HEX_F``); the system itself keeps its name."""
+        prefix = self.name + '.'
+        return name[len(prefix):] if name.startswith(prefix) else name
+
     def makeGraph(self) -> None:
         """
         Will be replaced with create_graph()
@@ -26,10 +31,10 @@ class GraphMixin:
 
         for obj in self.getObjs():
             if obj != self:
-                mermaid_lines.append(f"{obj.name}\n")
+                mermaid_lines.append(f"{self._node(obj.name)}\n")
 
         for connection in self.connections:
-            mermaid_lines.append(f"\t{connection[0]} --{connection[1]}_{connection[2]}--> {connection[3]}\n")
+            mermaid_lines.append(f"\t{self._node(connection[0])} --{connection[1]}_{connection[2]}--> {self._node(connection[3])}\n")
 
         text = "".join(mermaid_lines)
         if save:
@@ -50,11 +55,11 @@ class GraphMixin:
 
         for obj in self.getObjs():
             if obj != self:
-                G.add_node(obj.name, type=obj.__class__.__name__, attributes=obj.__dict__)
+                G.add_node(self._node(obj.name), type=obj.__class__.__name__, attributes=obj.__dict__)
 
         edge_labels = {}
         for connection in self.connections:
-            source, target, label = connection[0], connection[-1], f"{connection[1]}_{connection[2]}"
+            source, target, label = self._node(connection[0]), self._node(connection[-1]), f"{connection[1]}_{connection[2]}"
             G.add_edge(source, target)
             edge_labels[(source, target)] = label
 

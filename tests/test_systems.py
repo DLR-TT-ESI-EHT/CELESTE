@@ -70,7 +70,7 @@ def test_pinch_stream_table(train):
 
 def test_graph(train, tmp_path):
     text = train.create_graph('mermaid', save=False)
-    assert text.startswith('flowchart LR') and 'train.comp1 --F1_F0--> train.HT1' in text
+    assert text.startswith('flowchart LR') and 'comp1 --F1_F0--> HT1' in text and 'train.comp1' not in text
     target = tmp_path / 'g.mmd'
     train.create_graph('mermaid', save=str(target))
     assert target.read_text() == text
