@@ -407,3 +407,14 @@ def test_pcc_area_specific_resistance_choices_and_current_density():
         assert _pcc(-30.0, T=873.15, asr_choice=choice).ASR() > 0
     with pytest.raises(ValueError):
         _pcc(-30.0, T=1000.0).ASR()                                     # outside the validity range of the polynomial fit
+
+
+@pytest.mark.parametrize('T', [500.0, 600.0, 1073.15, 1400.0])
+def test_soc_extents_match_the_log_flow_equations_at_any_temperature(T):
+    """K_MSR spans 1e-10 to 1e4 over this range; the extents solution must be the equilibrium at every temperature."""
+    soc = electrochem.SOC('s', media.Fuel_CH4(), media.Air(), I=5.0, Ncells=10, T=T)
+    soc.F0.n, soc.F0.Xi, soc.F0.T, soc.A0.T, soc.A0.n = 1.0, np.array([0.2, 0.3, 0.05, 0.01, 0.4, 0.04]), T, T, 5.0
+    assert soc.run_sol().success
+    n0 = soc.F0.n*np.asarray(soc.F0.Xi)
+    ref = solvers.solve(lambda u: equilibrium.fuel_residuals(np.exp(u), n0, T, soc.F0.P, O_in=soc.n_O), np.log(n0), tol=1e-12)
+    assert soc.F1.n*np.asarray(soc.F1.Xi) == pytest.approx(np.exp(ref.x), rel=1e-7, abs=1e-12)
