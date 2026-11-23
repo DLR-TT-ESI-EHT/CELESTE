@@ -379,7 +379,7 @@ def test_pfd(tmp_path):
     from celeste.CSL.systems import ProcessBoxes
     loop = ProcessBoxes.MethanolLoop('m')
     drawn = loop.pfd()                                   # declared flowsheet: drawn without solving
-    assert '8 units, 8 streams, 1 recycle' in drawn.html and 'class="stream recycle"' in drawn.html
+    assert '8 units, 8 streams; 1 back stream' in drawn.html and 'class="stream recycle"' in drawn.html
     loop.run_sol()
     path = loop.pfd(str(tmp_path/'m.html')).save(str(tmp_path/'m2.html'))
     page = open(path, encoding='utf-8').read()
@@ -392,4 +392,4 @@ def test_pfd(tmp_path):
     with pytest.raises(ValueError, match='nothing to draw'):
         soc.pfd()
     soc.run_sol()
-    assert '2 recycle' in soc.pfd().html
+    assert '2 back stream' in soc.pfd().html

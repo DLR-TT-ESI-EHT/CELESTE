@@ -328,7 +328,7 @@ g.stream:hover .line, g.stream.pinned .line {{ stroke:var(--hl); stroke-width:2.
 .bad {{ color:#dc2626; }}
 </style></head>
 <body>
-<header><h1>{title}</h1><div class="meta">{n_units} units, {n_streams} streams, {n_tears} recycle(s) dashed.
+<header><h1>{title}</h1><div class="meta">{n_units} units, {n_streams} streams; {n_tears} back stream(s) closing a loop (recycle or heat integration) dashed.
 Hover a unit or a stream for its data; click to pin.</div></header>
 <div class="legend">{legend}</div>
 <div class="wrap">{svg}</div>
