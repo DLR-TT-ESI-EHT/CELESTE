@@ -95,12 +95,14 @@ def fuel_equilibrium(n, T, P):
     """
     Distance from shift and reforming equilibrium of the flows ``n`` (FUEL_SPECIES) at T [K] and P [bar]:
     ``K*x_CO*x_H2O - x_CO2*x_H2`` (WGS) and ``K*x_CH4*x_H2O - x_CO*x_H2^3*P^2`` (MSR), that is K - Q multiplied by the
-    reactant fractions, so that trace species do not divide.
+    reactant fractions, so that trace species do not divide. The residuals are divided by min(K, 1): K_MSR spans
+    1e-10 to 1e4 between 500 and 1300 K, and without it the first equation would be satisfied at any composition
+    at low temperature.
     """
     x = np.asarray(n, dtype=float)/np.sum(n)
     H2, CH4, CO2, CO, H2O = x[:5]
-    return np.array([np.exp(ln_K('WGS', T))*CO*H2O - CO2*H2,
-                     np.exp(ln_K('MSR', T))*CH4*H2O - CO*H2**3*P**2])
+    K = np.exp([ln_K('WGS', T), ln_K('MSR', T)])
+    return (K*np.array([CO*H2O, CH4*H2O]) - np.array([CO2*H2, CO*H2**3*P**2]))/np.minimum(K, 1.0)
 
 
 def fuel_residuals(n, n0, T, P, O_in: float = 0.0, H_in: float = 0.0, xp: ModuleType = np):

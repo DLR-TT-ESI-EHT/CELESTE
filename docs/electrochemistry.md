@@ -17,7 +17,7 @@ The fuel outlet follows from the extents, `n = n_feed + fuel_transfer + ξ·ν` 
 `equilibrium.FUEL_NU`): the charge transfer moves the oxygen (SOC: H2 → H2O) or the protons (PCC: H2 leaves), the
 two reactions do the rest, so the element balances hold by construction and only the two equilibria remain as
 equations. They are written as K − Q multiplied by the reactant fractions, so that trace species (1e-8 CH4 in an
-electrolysis feed) do not divide. Setting `T=` (isothermal, 2
+electrolysis feed) do not divide, and divided by min(K, 1), because K_MSR spans 1e-10 to 1e4 between 500 and 1300 K and the residual must stay meaningful at low temperature. Setting `T=` (isothermal, 2
 unknowns: `Eqs_T`, `f_sol_T`) or `Q=` (heat duty, 3 unknowns, outlet
 temperature solved together with the extents: `Eqs_Q`, `f_sol_Q`) selects
 the matching `Eqs` and `f_sol` once; `soc.T = ...` / `soc.Q = ...` switch an
