@@ -20,13 +20,13 @@ class AELSys(SysBase):
         self.F1 = interfaces.Flange(name + '.F1', n=n, Xi=Xi, Medium=media.Media_AEL(), T=T_ael, P=P_ael)         
         
         self.ael = electrochem.AEL(name + '.ael', Medium=media.Media_AEL(), T=T_ael, P=P_ael, A=cellArea, Ncells=Ncells) 
-        self.HT_O1 = heat.heater_to(name + '.HT_O1', media.Media_AEL(), T0, P0)
+        self.HT_O1 = heat.heater_to(name + '.HT_O1', media.Media_AEL(), T0)
         self.GPU = components.GPU_3S(name + '.GPU', Medium=media.Media_AEL(), sep=Sep)
         for outlet in (self.GPU.F1, self.GPU.F2, self.GPU.F3):
             outlet.T, outlet.P = T_ael, P_ael
         self.GPU.F3.Xi = np.array([0, 0, 0, 1])
-        self.HT_O2 = heat.heater_to(name + '.HT_O2', media.Media_AEL(), T0, P0)
-        self.CD_W1 = heat.heater_to(name + '.CD_W1', media.Media_AEL(), T0, P0)
+        self.HT_O2 = heat.heater_to(name + '.HT_O2', media.Media_AEL(), T0)
+        self.CD_W1 = heat.heater_to(name + '.CD_W1', media.Media_AEL(), T0)
         
         self.F2 = interfaces.Flange(name + '.F2', Medium=media.Media_AEL())
         self.O1 = interfaces.Flange(name + '.O1', Medium=media.Media_AEL()) # O2 from ael
@@ -73,7 +73,7 @@ class _SOCPlant(SysBase):
         self.A1 = interfaces.Flange(name + '.A1', Medium=media.Air(), T=T_soc, P=P_soc)
         self.soc = electrochem.SOC(name + '.soc', MediumF=media.Fuel_CH4(), MediumA=media.Air(), T=T_soc, I=I,
                                    cellArea=cellArea, Ncells=Ncells)
-        self.HT_A2 = heat.heater_to(name + '.HT_A2', media.Air(), T0, P_air)
+        self.HT_A2 = heat.heater_to(name + '.HT_A2', media.Air(), T0)
         self.A2 = interfaces.Flange(name + '.A2', Medium=media.Air())
 
     def solve_cell(self, store: bool = False):
@@ -100,9 +100,9 @@ class SOECSys(_SOCPlant):
                  ext: bool = False, T_HT2: float = 378.15):
         super().__init__(locals(), name, I, Ncells, T0, T_soc, P_soc, P_soc, cellArea, ext)
         if self.fuel_cooler:
-            self.HT_F2 = heat.heater_to(name + '.HT_F2', media.Fuel_CH4(), T_HT2, P_soc)
+            self.HT_F2 = heat.heater_to(name + '.HT_F2', media.Fuel_CH4(), T_HT2)
         self.GPU1 = components.GPU_2S(name + '.GPU1', Medium=media.Fuel_CH4(), idxSep=4)       # separation of water
-        self.HT_W1 = heat.heater_to(name + '.HT_W1', media.Fuel_CH4(), T0, P_soc, MediumOut=media.Fuel_CH4L())
+        self.HT_W1 = heat.heater_to(name + '.HT_W1', media.Fuel_CH4(), T0, MediumOut=media.Fuel_CH4L())
         self.Chm1 = components.ChgMedium(name + '.ChM_1', Medium0=media.Fuel_CH4L(), Medium1=media.Water())
         self.F2 = interfaces.Flange(name + '.F2', Medium=media.Fuel_CH4())
         self.WWater = interfaces.Flange(name + '.WWater', Medium=media.Water())
@@ -138,7 +138,7 @@ class CO2Sys(_SOCPlant):
     def __init__(self, name: str, T0: float = 298.15, P0: int = 1, I=None, Ncells=None, T_soc: float = 1073.15, P_soc: int = 1, cellArea: float = 127.8, ext: bool = False,
                  T_HT2: float = 298.15):
         super().__init__(locals(), name, I, Ncells, T0, T_soc, P_soc, P0, cellArea, ext)
-        self.HT_F2 = heat.heater_to(name + '.HT_F2', media.Fuel_CH4(), T_HT2, P_soc)
+        self.HT_F2 = heat.heater_to(name + '.HT_F2', media.Fuel_CH4(), T_HT2)
         self.F2 = interfaces.Flange(name + '.F2', Medium=media.Fuel_CH4())
         self.getObjs()
 

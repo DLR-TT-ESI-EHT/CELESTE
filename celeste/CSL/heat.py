@@ -352,8 +352,8 @@ class Heater(ModelBase):
         self.Eqs()
 
 
-def heater_to(name: str, Medium: media.Medium_Base, T, P, MediumOut=None):
-    """A ``Heater`` (or cooler) from ``Medium`` to ``MediumOut`` (default the same) whose outlet is at T [K] and P [bar]."""
+def heater_to(name: str, Medium: media.Medium_Base, T, MediumOut=None):
+    """A ``Heater`` (or cooler) from ``Medium`` to ``MediumOut`` (default the same) whose outlet is at T [K]; the pressure is that of the inlet."""
     unit = Heater(name, Medium0=Medium, Medium1=MediumOut or Medium)
-    unit.F1.T, unit.F1.P = T, P
+    unit.F1.T = T
     return unit

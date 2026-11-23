@@ -26,7 +26,7 @@ version may notice.
   takes `xp=` (NumPy or `jax.numpy`). Example `examples/05_soec_flowsheet.py`: an SOEC system solved sequential
   modular and equation oriented (with a design specification)
 - **Type hints** on the public signatures of the models (`celeste._types.Array` for float arrays); `pyright` clean
-- **`CSL.heat.heater_to`** (heater to a given outlet temperature, optional change of medium) and **`SysBase.solve(*units)`**,
+- **`CSL.heat.heater_to`** (heater to a given outlet temperature at the inlet pressure, optional change of medium) and **`SysBase.solve(*units)`**,
   used to shorten the system boxes (`ElectBox`, `SOCsystem`, `ProcessBoxes`); results unchanged
 - Transport properties (`mu`, `k`, `Pr`) for the real-fluid `Thermo_PR` media
 - **`celeste.jx`** – numerical kernels in JAX
