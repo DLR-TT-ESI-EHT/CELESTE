@@ -68,6 +68,12 @@ def test_pinch_stream_table(train):
         train.pinch_stream_table(min_duty=1e6)
 
 
+def test_graph_system_flanges_are_nodes():
+    from celeste.CSL.systems.SOCsystem import SOCsysRecupe
+    text = SOCsysRecupe('socsys').create_graph('mermaid', save=False)
+    assert '\tF0 --C0--> HEX_F' in text and '\tHEX_F --H1--> F1' in text and 'socsys' not in text
+
+
 def test_graph(train, tmp_path):
     text = train.create_graph('mermaid', save=False)
     assert text.startswith('flowchart LR') and 'comp1 --F1_F0--> HT1' in text and 'train.comp1' not in text

@@ -11,6 +11,21 @@ class GraphMixin:
         ``feed((feed))``); the system itself keeps its name."""
         return re.sub(rf'(?<![\w.]){re.escape(self.name)}\.', '', name)
 
+    def _edge(self, connection: list) -> tuple[str, str, str]:
+        """
+        (source, label, target) of a recorded connection [unit, port, port, unit]. A flange of the system is a node of its
+        own (``F0 --C0--> HEX_F``): its name replaces the system name and the label is the port of the unit only.
+        """
+        unit0, out, inlet, unit1 = connection
+        source, target = self._node(unit0), self._node(unit1)
+        if unit0 == self.name and unit1 == self.name:
+            return out, '', inlet
+        if unit0 == self.name:
+            return out, inlet, target
+        if unit1 == self.name:
+            return source, out, inlet
+        return source, f'{out}_{inlet}', target
+
     def makeGraph(self) -> None:
         """
         Will be replaced with create_graph()
@@ -35,8 +50,13 @@ class GraphMixin:
             if obj != self:
                 mermaid_lines.append(f"{self._node(obj.name)}\n")
 
-        for connection in self.connections:
-            mermaid_lines.append(f"\t{self._node(connection[0])} --{connection[1]}_{connection[2]}--> {self._node(connection[3])}\n")
+        edges = [self._edge(connection) for connection in self.connections]
+        known = {self._node(obj.name) for obj in self.getObjs() if obj != self}
+        for node in dict.fromkeys(n for source, _, target in edges for n in (source, target)):
+            if node not in known:                                   # a flange of the system
+                mermaid_lines.append(f"{node}\n")
+        for source, label, target in edges:
+            mermaid_lines.append(f"\t{source} --{label}--> {target}\n" if label else f"\t{source} --> {target}\n")
 
         text = "".join(mermaid_lines)
         if save:
@@ -61,7 +81,7 @@ class GraphMixin:
 
         edge_labels = {}
         for connection in self.connections:
-            source, target, label = self._node(connection[0]), self._node(connection[-1]), f"{connection[1]}_{connection[2]}"
+            source, label, target = self._edge(connection)
             G.add_edge(source, target)
             edge_labels[(source, target)] = label
 
