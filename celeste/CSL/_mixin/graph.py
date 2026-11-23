@@ -26,13 +26,6 @@ class GraphMixin:
             return source, out, inlet
         return source, f'{out}_{inlet}', target
 
-    def makeGraph(self) -> None:
-        """
-        Will be replaced with create_graph()
-        Generate graph representation of the system using Mermaid syntax.
-        """
-        self.create_graph("mermaid")
-
     def make_mermaid_graph(self, save: bool | str = True) -> str:
         """
         Create a Mermaid graph representation of the system.
