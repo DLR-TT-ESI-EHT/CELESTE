@@ -294,7 +294,7 @@ def test_declared_flowsheet_generates_order_and_tears():
     assert sys_.out.F0.n == pytest.approx(1.0, rel=1e-8) and sys_.heater.F0.n == pytest.approx(ref.heater.F0.n, rel=1e-8)
     assert sys_.heater.F0.n == pytest.approx(1.0/(0.6*0.7), rel=1e-7)
     assert sys_.EBcheck() == pytest.approx(0.0, abs=1e-6)
-    assert 't.split1 --F1_F1--> t.mix1' in sys_.create_graph('mermaid', save=False)
+    assert 'split1 --F1_F1--> mix1' in sys_.create_graph('mermaid', save=False)
 
 
 def test_links_from_a_hand_written_run_give_the_declared_flowsheet():
