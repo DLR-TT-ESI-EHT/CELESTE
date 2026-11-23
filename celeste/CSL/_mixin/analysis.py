@@ -23,7 +23,7 @@ class ReportingMixin:
                 'MW': v.F0.mw,
                 'Exth': v.Exth
             }
-        return self._table(heat_tab, ['CP', 'T0', 'T1', 'deltaT', 'Q', 'm', 'cp', 'MW', 'Exth']).sort_values('Q')
+        return pd.DataFrame(heat_tab).transpose().sort_values('Q')
 
     @staticmethod
     def _table(records: dict, columns: list) -> pd.DataFrame:
@@ -158,7 +158,7 @@ class ReportingMixin:
                 'lhv': v.F0.LHV,
                 'LHV': v.F0.n * v.F0.LHV
             }
-        return self._table(tab, ['n', 'm', 'ex', 'EX', 'lhv', 'LHV'])
+        return pd.DataFrame(tab).transpose()
 
     def exloss_df(self):
         loss = {}
