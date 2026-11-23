@@ -15,6 +15,7 @@ The earlier empirical fits are kept for reference (``*_fit``, ``*_Graaf``); they
 deviate from the NASA values by up to 36 % (water-gas shift at 450 K).
 """
 from functools import lru_cache
+from types import ModuleType
 
 import numpy as np
 
@@ -102,7 +103,7 @@ def fuel_equilibrium(n, T, P):
                      np.exp(ln_K('MSR', T))*CH4*H2O - CO*H2**3*P**2])
 
 
-def fuel_residuals(n, n0, T, P, O_in: float = 0.0, H_in: float = 0.0, xp=np):
+def fuel_residuals(n, n0, T, P, O_in: float = 0.0, H_in: float = 0.0, xp: ModuleType = np):
     """
     Equations of a fuel-side stream (H2, CH4, CO2, CO, H2O, N2) at shift and reforming equilibrium:
     the C, H, O, N balances between the inlet flows ``n0`` and the outlet flows ``n`` (relative to the
