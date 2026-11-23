@@ -41,7 +41,9 @@ def test_compression_train(train):
 def test_reports(train):
     heaters = train.heater_df()
     assert list(heaters.index) == ['train.HT1', 'train.HT2'] and (heaters.Q < 0).all()
-    assert train.heat_df().empty and train.tot_heat_in() == 0
+    with pytest.warns(UserWarning, match='no heat flows'):
+        assert train.heat_df().empty
+    assert train.tot_heat_in() == 0
     work = train.work_df()
     assert work.name == 'W' and list(work.index) == ['train.comp1', 'train.comp2']
     assert train.tot_work_in() == pytest.approx(work.sum()) and train.tot_work_out() == 0
