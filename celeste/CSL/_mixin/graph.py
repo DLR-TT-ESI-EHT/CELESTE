@@ -1,3 +1,5 @@
+import re
+
 import networkx as nx
 
 
@@ -5,9 +7,9 @@ class GraphMixin:
     """Mermaid and NetworkX graph representations of the system topology."""
 
     def _node(self, name: str) -> str:
-        """Unit name relative to the system (``socsys.HEX_F`` -> ``HEX_F``); the system itself keeps its name."""
-        prefix = self.name + '.'
-        return name[len(prefix):] if name.startswith(prefix) else name
+        """Unit name relative to the system (``socsys.HEX_F`` -> ``HEX_F``; also inside a Mermaid shape, ``t.feed((t.feed))`` ->
+        ``feed((feed))``); the system itself keeps its name."""
+        return re.sub(rf'(?<![\w.]){re.escape(self.name)}\.', '', name)
 
     def makeGraph(self) -> None:
         """
