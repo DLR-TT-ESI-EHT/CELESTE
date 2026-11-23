@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -23,14 +25,10 @@ class ReportingMixin:
                 'MW': v.F0.mw,
                 'Exth': v.Exth
             }
+        if not heat_tab:
+            warnings.warn('heater_df: the system has no heaters, the DataFrame is empty')
+            return pd.DataFrame(columns=['CP', 'T0', 'T1', 'deltaT', 'Q', 'm', 'cp', 'MW', 'Exth'], dtype=float)
         return pd.DataFrame(heat_tab).transpose().sort_values('Q')
-
-    @staticmethod
-    def _table(records: dict, columns: list) -> pd.DataFrame:
-        """DataFrame with one row per record and float columns, also when there are no records."""
-        if not records:
-            return pd.DataFrame(columns=columns, dtype=float)
-        return pd.DataFrame(records).transpose().astype(float)
 
     def pinch_stream_table(self, exclude: list[str] | None = None, include: list[str] | None = None,
                             min_duty: float = 1.0, min_delta_t: float = 0.5) -> pd.DataFrame:
@@ -130,7 +128,10 @@ class ReportingMixin:
                 'Q': np.where(np.abs(v.Q) > 1e-7, v.Q, 0).round(5),
                 'Exth': np.where(np.abs(v.Exth) > 1e-7, v.Exth, 0).round(5)
             }
-        return self._table(heat_tab, ['Q', 'Exth']).sort_values('Q')
+        if not heat_tab:
+            warnings.warn('heat_df: the system has no heat flows, the DataFrame is empty')
+            return pd.DataFrame(columns=['Q', 'Exth'], dtype=float)
+        return pd.DataFrame(heat_tab).transpose().sort_values('Q')
 
     def work_df(self):
         """Work of every component exposing ``W`` [kJ/s], as a Series named 'W'."""
@@ -158,6 +159,9 @@ class ReportingMixin:
                 'lhv': v.F0.LHV,
                 'LHV': v.F0.n * v.F0.LHV
             }
+        if not tab:
+            warnings.warn('flow_df: the system has no sources or sinks, the DataFrame is empty')
+            return pd.DataFrame(columns=['n', 'm', 'ex', 'EX', 'lhv', 'LHV'], dtype=float)
         return pd.DataFrame(tab).transpose()
 
     def exloss_df(self):
@@ -166,7 +170,10 @@ class ReportingMixin:
             loss[i] = {
                 'Ex loss': np.where(np.abs(v.Exloss) > 1e-7, v.Exloss, 0).round(5)
             }
-        return self._table(loss, ['Ex loss'])
+        if not loss:
+            warnings.warn('exloss_df: the system has no units with exergy losses, the DataFrame is empty')
+            return pd.DataFrame(columns=['Ex loss'], dtype=float)
+        return pd.DataFrame(loss).transpose()
 
     def tot_LHV_Flow_out(self):
         return np.sum([v.F0.LHV * v.F0.n for i, v in self.get_Sinks().items()])
