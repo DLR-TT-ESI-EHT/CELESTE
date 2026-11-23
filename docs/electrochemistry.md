@@ -9,21 +9,20 @@ n_O = Ncells·I/(2F) (negative in electrolysis). The system of equations (`Eqs`)
 
 | Unknown | Equation |
 |---|---|
-| ln n_H2, ln n_CH4, ln n_CO2, ln n_CO, ln n_H2O, ln n_N2 (fuel outlet) | C, H, N balances; O balance including n_O |
-| | WGS equilibrium, ln(x_CO2·x_H2 / (x_CO·x_H2O)) − ln K_WGS = 0 |
-| | MSR equilibrium, ln(x_CO·x_H2³·P² / (x_CH4·x_H2O)) − ln K_MSR = 0 |
-| T_out (only with `Q=`) | energy balance, Q − Q_spec = 0 |
+| ξ_WGS, ξ_MSR (CO2 formed, CH4 converted) | WGS equilibrium, K_WGS·x_CO·x_H2O − x_CO2·x_H2 = 0 |
+| | MSR equilibrium, K_MSR·x_CH4·x_H2O − x_CO·x_H2³·P² = 0 |
+| T_out (only with `Q=`) | energy balance, (Q − Q_spec)/n_feed = 0 |
 
-The balances are scaled by the element inflow and the equilibria are in log
-form, so all residuals are of order one. Solving for the logarithms of the flows
-keeps them positive, also for trace species (1e-8 CH4 in an electrolysis feed),
-so `celeste.solvers.solve` needs no bounds. Setting `T=` (isothermal, 6
-unknowns: `Eqs_T`, `f_sol_T`) or `Q=` (heat duty, 7 unknowns, outlet
-temperature solved together with the compositions: `Eqs_Q`, `f_sol_Q`) selects
+The fuel outlet follows from the extents, `n = n_feed + fuel_transfer + ξ·ν` (`fuel_flows`; ν is
+`equilibrium.FUEL_NU`): the charge transfer moves the oxygen (SOC: H2 → H2O) or the protons (PCC: H2 leaves), the
+two reactions do the rest, so the element balances hold by construction and only the two equilibria remain as
+equations. They are written as K − Q multiplied by the reactant fractions, so that trace species (1e-8 CH4 in an
+electrolysis feed) do not divide. Setting `T=` (isothermal, 2
+unknowns: `Eqs_T`, `f_sol_T`) or `Q=` (heat duty, 3 unknowns, outlet
+temperature solved together with the extents: `Eqs_Q`, `f_sol_Q`) selects
 the matching `Eqs` and `f_sol` once; `soc.T = ...` / `soc.Q = ...` switch an
-existing model. `run_sol` solves `f_sol`. The constants come from the
-NASA Gibbs energies (`CSL.equilibrium`). The extents are reported from the
-flows: `xi_WGS` is the CO2 formed, `xi_MSR` the CH4 converted.
+existing model. `run_sol` solves `f_sol`, starting from no reaction. The constants come from the
+NASA Gibbs energies (`CSL.equilibrium`). `xi_WGS` and `xi_MSR` are reported from the flows.
 
 ## Energy specification
 
