@@ -43,9 +43,9 @@ class SOCsysRecupe(SysBase):
         self.A0 = interfaces.Flange(name+'.A0', air, n=na0, Xi=np.array([0.21, 0.79]), T=298.15, P=1.)
 
         self.HEX_F = heat.HexNTU(name+'.HEX_F', MediumC=fuel, MediumH=fuel, UA=etaHex, HexType='other')
-        self.HT_F0 = heat.heater_to(name+'.HT_F1', fuel, T_soc, 1.0)
+        self.HT_F0 = heat.heater_to(name+'.HT_F1', fuel, T_soc)
         self.HEX_A = heat.HexNTU(name+'.HEX_A', MediumC=air, MediumH=air, UA=etaHex, HexType='other')
-        self.HT_A0 = heat.heater_to(name+'.HT_A1', air, T_soc, 1.0)
+        self.HT_A0 = heat.heater_to(name+'.HT_A1', air, T_soc)
         self.soc = electrochem.SOC(name+'.soc', MediumF=fuel, MediumA=air, T=T_soc, I=I, Ncells=Ncells, cellArea=cellArea)
 
         self.F1 = interfaces.Flange(name+'.F1', fuel)
