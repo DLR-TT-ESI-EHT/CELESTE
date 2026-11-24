@@ -39,10 +39,9 @@ After `run_sol()`:
 In a system the drum is used like any other unit:
 
 ```python
-self.connect_seq(self.cooler.F1, self.drum.F0, store=store)
-self.drum._sol = self.drum.run_sol()
-self.connect_seq(self.drum.F1, self.compressor.F0, store=store)   # gas
-self.connect_seq(self.drum.F2, self.water_sink.F0, store=store)   # condensate
+self.link(self.cooler.F1, self.drum.F0)
+self.link(self.drum.F1, self.compressor.F0)   # gas
+self.link(self.drum.F2, self.water_sink.F0)   # condensate
 ```
 
 `CSL.systems.ProcessBoxes.CondenserBox` packages a cooler and a drum.

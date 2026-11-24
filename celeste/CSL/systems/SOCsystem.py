@@ -18,16 +18,11 @@ class SOCBasicSys(SysBase):
         self.sa2 = flow.Sink(name + '.sa2', Medium=media.Air())  
         
         self.getObjs()
-        
-    def seq_sol(self, store: bool = False) -> None:
-               
-        self.connect_seq(self.sf1.F1, self.soc.F0, store=store)
-        self.connect_seq(self.sa1.F1, self.soc.A0, store=store)
-        
-        self.solve(self.soc)
-        
-        self.connect_seq(self.soc.F1, self.sf2.F0, store=store)
-        self.connect_seq(self.soc.A1, self.sa2.F0, store=store)
+
+        self.link(self.sf1.F1, self.soc.F0)
+        self.link(self.sa1.F1, self.soc.A0)
+        self.link(self.soc.F1, self.sf2.F0)
+        self.link(self.soc.A1, self.sa2.F0)
       
 class SOCsysRecupe(SysBase):
     """
@@ -52,25 +47,13 @@ class SOCsysRecupe(SysBase):
         self.A1 = interfaces.Flange(name+'.A1', air)
         self.getObjs()
 
-    def seq_sol(self, store: bool = False) -> None:
-        self.connect_seq(self.F0, self.HEX_F.C0, store=store)
-        self.connect_seq(self.A0, self.HEX_A.C0, store=store)
-        self.solve(self.HEX_F, self.HEX_A)
-
-        self.connect_seq(self.HEX_F.C1, self.HT_F0.F0, store=store)
-        self.connect_seq(self.HEX_A.C1, self.HT_A0.F0, store=store)
-        self.solve(self.HT_F0, self.HT_A0)
-
-        self.connect_seq(self.HT_F0.F1, self.soc.F0, store=store)
-        self.connect_seq(self.HT_A0.F1, self.soc.A0, store=store)
-        self.solve(self.soc)
-
-        self.connect_seq(self.soc.F1, self.HEX_F.H0, store=store)
-        self.connect_seq(self.soc.A1, self.HEX_A.H0, store=store)
-        self.solve(self.HEX_F, self.HEX_A)
-        self.connect_seq(self.HEX_F.H1, self.F1, store=store)
-        self.connect_seq(self.HEX_A.H1, self.A1, store=store)
-
-    def run_sol(self):
-        self.seq_sol()
-        self.seq_sol()
+        self.link(self.F0, self.HEX_F.C0)
+        self.link(self.A0, self.HEX_A.C0)
+        self.link(self.HEX_F.C1, self.HT_F0.F0)
+        self.link(self.HEX_A.C1, self.HT_A0.F0)
+        self.link(self.HT_F0.F1, self.soc.F0)
+        self.link(self.HT_A0.F1, self.soc.A0)
+        self.link(self.soc.F1, self.HEX_F.H0)           # the cell outlets heat the feeds: a recycle loop, torn automatically
+        self.link(self.soc.A1, self.HEX_A.H0)
+        self.link(self.HEX_F.H1, self.F1)
+        self.link(self.HEX_A.H1, self.A1)

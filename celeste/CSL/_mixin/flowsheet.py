@@ -42,6 +42,11 @@ class FlowsheetMixin:
         self._streams.append((outlet, inlet))
         self.__dict__.pop('_plan', None)
 
+    def unlink(self, outlet, inlet) -> None:
+        """Remove a declared stream (for example the last stream of a box that is being extended)."""
+        self.__dict__['_streams'] = [(a, b) for a, b in self.streams if not (a is outlet and b is inlet)]
+        self.__dict__.pop('_plan', None)
+
     def _run_streams(self) -> list:
         """
         The recorded connections between units of this system. A flange of the system that a run uses as the

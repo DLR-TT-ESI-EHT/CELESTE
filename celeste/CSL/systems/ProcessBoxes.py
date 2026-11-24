@@ -9,9 +9,8 @@ inside a larger system like a single unit:
 
     self.cond = CondenserBox(name + '.cond', media.Fuel_CH4(), T_cond=303.15)
     ...
-    self.connect_seq(self.reactor.F1, self.cond.F0)
-    self.cond.run_sol()
-    self.connect_seq(self.cond.F1, self.next_unit.F0)
+    self.link(self.reactor.F1, self.cond.F0)
+    self.link(self.cond.F1, self.next_unit.F0)       # the box is solved with the other units
 """
 import numpy as np
 
@@ -39,15 +38,14 @@ class CondenserBox(SysBase):
         self.F0 = interfaces.Flange(name + '.F0', Medium=Medium)
         self.F1 = interfaces.Flange(name + '.F1', Medium=self.drum.F1.Medium)
         self.F2 = interfaces.Flange(name + '.F2', Medium=self.drum.F2.Medium)
+        self.link(self.F0, self.cooler.F0)
+        self.link(self.cooler.F1, self.drum.F0)
+        self.link(self.drum.F1, self.F1)
+        self.link(self.drum.F2, self.F2)
 
     def seq_sol(self, store: bool = False) -> None:
-        self.connect_seq(self.F0, self.cooler.F0, store=store)
-        self.cooler.F1.T = self.T_cond
-        self.solve(self.cooler)
-        self.connect_seq(self.cooler.F1, self.drum.F0, store=store)
-        self.solve(self.drum)
-        self.connect_seq(self.drum.F1, self.F1, store=store)
-        self.connect_seq(self.drum.F2, self.F2, store=store)
+        self.cooler.F1.T = self.T_cond                    # T_cond may be changed after construction
+        self.auto_sol(store=store)
 
     @property
     def Q(self) -> float:

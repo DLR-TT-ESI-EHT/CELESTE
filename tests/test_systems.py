@@ -388,11 +388,22 @@ def test_pfd(tmp_path):
     assert 'mole fractions' in stream and 'CH3OH' in stream
     assert any('Ex loss' in v and 'MeOH' in v for v in tips.values())
     assert '<iframe srcdoc=' in drawn._repr_html_()
-    soc = SOCsystem.SOCsysRecupe('s', I=-50.0)           # hand-written seq_sol: drawn from the last run
-    with pytest.raises(ValueError, match='nothing to draw'):
-        soc.pfd()
-    soc.run_sol()
+    soc = SOCsystem.SOCsysRecupe('s', I=-50.0)           # declared: drawn without solving
     assert '2 back stream' in soc.pfd().html
+
+    class HandWritten(SysBase):                          # a hand-written seq_sol is drawn from the last run
+        def __init__(self):
+            super().__init__(dict(name='hand'))
+            self.a = flow.SourceM('a', media.Air(), 1., None, 300., 1.)
+            self.b = flow.Sink('b', media.Air())
+
+        def seq_sol(self, store=False):
+            self.connect_seq(self.a.F1, self.b.F0, store=store)
+    hand = HandWritten()
+    with pytest.raises(ValueError, match='nothing to draw'):
+        hand.pfd()
+    hand.run_sol()
+    assert '1 units' in hand.pfd().html or '2 units' in hand.pfd().html
 
 
 def test_equations_listing():

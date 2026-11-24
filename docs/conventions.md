@@ -151,14 +151,13 @@ class MySystem(SysBase):
         super().__init__(locals())
         self.unit_a = ...(name + '.unit_a', ...)
         self.unit_b = ...(name + '.unit_b', ...)
-
-    def seq_sol(self, store=False):
-        self.connect_seq(self.unit_a.F1, self.unit_b.F0, store=store)
-        self.unit_b._sol = self.unit_b.run_sol()
+        self.link(self.unit_a.F1, self.unit_b.F0)      # every stream once
 ```
 
-- `seq_sol(store=False)` connects and solves the units in flow order; pass
-  `store` on to `connect_seq` so that `create_graph()` can draw the flowsheet.
+- `link(outlet, inlet)` declares the streams; the solve order and the tear streams of recycles are generated
+  (`print_solve_order()`), and `create_graph()`, `pfd()` and `eo_sol()` use the same declaration.
+- Alternatively write `seq_sol(store=False)`: connect and solve the units in flow order with `connect_seq`, passing
+  `store` on so that `create_graph()` can draw the flowsheet (`links_from_run()` turns such a run into links).
 - Store the result of iterative units in `unit._sol`; `get_success()` reads it.
 - `run_sol()` defaults to one call of `seq_sol()`. Systems with a recycle
   override it: `return self.Recycle_Tear(self.split.F1, self.mix.F1)`.
