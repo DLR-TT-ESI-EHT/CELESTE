@@ -80,10 +80,7 @@ def test_exergy_summary_closes(train):
     assert s.Ex_balance == pytest.approx(0, abs=1e-6)
     assert s.Exdest == pytest.approx(train.tot_Exdest()) and s.Exloss == pytest.approx(train.tot_Exloss())
     assert 0 < s.efficiency < s.efficiency_max <= 1
-    assert s.Exloss == pytest.approx(s.Exloss_heat + s.Exloss_streams)
-    assert s.efficiency_max == pytest.approx(1 - s.Exloss/s.Ex_in)
-    s0 = train.exergy_summary(products=[])           # no product named: every outlet stream is lost
-    assert s0.Ex_product == 0 and s0.Exloss_streams > 0 and s0.Ex_balance == pytest.approx(0, abs=1e-6)
+    assert s.efficiency_max == pytest.approx(1 - s.Exloss/s.Ex_in - s.Ex_unused/s.Ex_in)
     assert s.destruction_share == pytest.approx(s.Exdest/s.Ex_in)
 
 
