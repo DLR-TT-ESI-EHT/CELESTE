@@ -52,9 +52,15 @@ class _FuelStack(ModelBase):
 
     def pfd_view(self):
         '''Current, current density, ideal and operating cell voltage, reactant conversion and outlet temperature.'''
-        return (super().pfd_view().add('I', self.I, 'A').add('j', safe(self, 'j'), 'A/cm2')
-                .add('V ideal', safe(self, 'Vid'), 'V').add('V cell', safe(self, 'Vop'), 'V')
-                .add('conversion', safe(self, 'RC')).add('T out', self.F1.T, 'K'))
+        return (
+            super().pfd_view()
+            .add('I', self.I, 'A')
+            .add('j', safe(self, 'j'), 'A/cm2')
+            .add('V ideal', safe(self, 'Vid'), 'V')
+            .add('V cell', safe(self, 'Vop'), 'V')
+            .add('RC', safe(self, 'RC_EC'))
+            .add('T out', self.F1.T, 'K')
+            )
 
     def __init__(self, name: str, MediumF: media.Medium_Base, MediumA: media.Medium_Base, T_in, P_in, T, Q, V_model, n_nodes,
                  ASR_T: str = 'mean', **params):
