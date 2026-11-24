@@ -195,7 +195,6 @@ version may notice.
 
 | What | Before | Now | Size of the effect |
 |---|---|---|---|
-| `SysBase.connect(pin1, pin2)` | `link(pin1, pin2)`; `eo_compile()` / `eo_sol()` build the connection equations |
 | `CompIsent` outlet state | ideal-gas formula with the mean heat capacity of inlet and outlet, solved with `root` | real-gas isentropic outlet from the medium, then the efficiency correction (also used by the mapped compressors and turbines); explicit, so `run_sol` returns a result with `success=True` and `get_success()` no longer lists compressors | outlet temperature 511.43 → 512.49 K and work 6.290 → 6.321 kJ/s for air, 300 K, 1 → 5 bar, eff 0.8; the reversible case now has Sgen = 0 exactly (was 1e-4) |
 | `GPU_*` `Exloss`, `Sgen` | exergy in − exergy out (negative for a separation), ΔS | exergy in + W − exergy out = W − Wid ≥ 0; ΔS − Q_amb/T0, so Exloss = T0·Sgen | GPU rows of `exdest_df` grow by the separation work, e.g. 0.94 kW in `SOECSys` |
 | `SysBase.MBcheck()`, `EBcheck()` | sources and sinks only, `MBcheck` out − in; `EBcheck` from the heater / heat / work tables | boundary streams from the recorded connections, in − out; Σ(Q + W) of every unit | sign of `MBcheck`; `EBcheck` now closes for boxes without sources and sinks (e.g. `SOCsysRecupe`, `CO2Sys`) |
@@ -231,6 +230,7 @@ These keep working and emit a `CelesteDeprecationWarning`:
 
 | Name | Use instead |
 |---|---|
+| `SysBase.connect(pin1, pin2)` | `link(pin1, pin2)`; `eo_compile()` / `eo_sol()` build the connection equations |
 | `PCC_base`, `SOC_Nernst_avg` (no warning) | `PCC`, `SOC(..., V_model='average')` |
 | `PCC(Tpcc0=, Tpcc1=, extent=)` | `pcc.F0.T = ...`, `PCC(..., T=...)`, nothing |
 | `HB_Adiabatic(...)` | `HB(..., Q=0)`; outlet pressure `F1_P` → pressure drop `dP` |
