@@ -26,11 +26,8 @@ class SimpleHeaterSys(SysBase):
         self.heater = heat.Heater(name + '.heater', media.Air(), media.Air())
         self.heater.F1.T = T_out
         self.sink = flow.Sink(name + '.sink', media.Air())
-
-    def seq_sol(self, store: bool = False) -> None:
-        self.connect_seq(self.source.F1, self.heater.F0, store=store) # feed Heater inlet flow
-        self.solve(self.heater)
-        self.connect_seq(self.heater.F1, self.sink.F0, store=store) # feed sink inlet flow
+        self.link(self.source.F1, self.heater.F0)
+        self.link(self.heater.F1, self.sink.F0)
 
 class SimpleCompressorSys(SysBase):
     """
@@ -49,11 +46,8 @@ class SimpleCompressorSys(SysBase):
         self.compressor = (compressor or turbomachinery.CompIsent)(name + '.compressor', media.Air(), eff=eff)
         self.compressor.F1.P = P_out
         self.sink = flow.Sink(name + '.sink', media.Air())
-
-    def seq_sol(self, store: bool = False) -> None:
-        self.connect_seq(self.source.F1, self.compressor.F0, store=store) # feed Compressor inlet flow
-        self.solve(self.compressor)
-        self.connect_seq(self.compressor.F1, self.sink.F0, store=store) # feed sink inlet flow
+        self.link(self.source.F1, self.compressor.F0)
+        self.link(self.compressor.F1, self.sink.F0)
 
 class Ncomp(SysBase):
     '''
@@ -116,19 +110,14 @@ class Ncomp(SysBase):
         setattr(self, f"comp{self.N}", comp)
         setattr(self, f"HT{self.N}", heater)
         self.getObjs()
-
-    def seq_sol(self, store: bool = False) -> None:
-        current_flow = self.F0
-        for idx, (comp, heater) in enumerate(zip(self.compressors, self.heaters)):
-            self.connect_seq(current_flow, comp.F0, store=store)
-            self.solve(comp)
-            
-            self.connect_seq(comp.F1, heater.F0, store=store)
-            self.solve(heater)
-            
-            current_flow = heater.F1
-            if idx == self.N - 1:  # Final connection
-                self.connect_seq(current_flow, self.F1, store=store)
+        if self.N == 1:
+            self.link(self.F0, comp.F0)
+        else:                                                   # the former last cooler now feeds this stage
+            previous = self.heaters[-2]
+            self.unlink(previous.F1, self.F1)
+            self.link(previous.F1, comp.F0)
+        self.link(comp.F1, heater.F0)
+        self.link(heater.F1, self.F1)
     
     def performance_report(self):
         """Generate system performance summary"""
@@ -145,6 +134,4 @@ class Ncomp(SysBase):
             ]
         }
 
-    def run_sol(self):
-        self.seq_sol()
  

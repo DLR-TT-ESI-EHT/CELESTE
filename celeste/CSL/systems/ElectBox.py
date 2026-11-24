@@ -34,29 +34,16 @@ class AELSys(SysBase):
         self.WWater = interfaces.Flange(name + '.WWater', Medium=media.Media_AEL()) #H2O from condenser
         
         self.getObjs()
-        
-    def seq_sol(self, store: bool = False) -> None:
-        
-        self.connect_seq(self.F1, self.ael.F0, store=store)
-        self.solve(self.ael)
-        
-        self.connect_seq(self.ael.F1, self.GPU.F0, store=store)
-        self.connect_seq(self.ael.F2, self.HT_O1.F0, store=store) 
-        
-        self.solve(self.GPU, self.HT_O1)
-        self.connect_seq(self.HT_O1.F1, self.O1, store=store) # O2 from AEL to the system
 
-        self.connect_seq(self.GPU.F1, self.F2, store=store) #  Dry H2 to the system
-        self.connect_seq(self.GPU.F2, self.HT_O2.F0, store=store)
-        self.connect_seq(self.GPU.F3, self.CD_W1.F0, store=store)
-        
-        self.solve(self.HT_O2, self.CD_W1)
-        
-        self.connect_seq(self.HT_O2.F1, self.O2, store=store) # O2 from GPU to the system
-        self.connect_seq(self.CD_W1.F1, self.WWater, store=store)  # Waste water to the system
-
-    def run_sol(self):
-        self.seq_sol()
+        self.link(self.F1, self.ael.F0)
+        self.link(self.ael.F1, self.GPU.F0)
+        self.link(self.ael.F2, self.HT_O1.F0)
+        self.link(self.HT_O1.F1, self.O1)               # O2 from AEL to the system
+        self.link(self.GPU.F1, self.F2)                 # dry H2 to the system
+        self.link(self.GPU.F2, self.HT_O2.F0)
+        self.link(self.GPU.F3, self.CD_W1.F0)
+        self.link(self.HT_O2.F1, self.O2)               # O2 from GPU to the system
+        self.link(self.CD_W1.F1, self.WWater)           # waste water to the system
 
 class _SOCPlant(SysBase):
     """
@@ -75,18 +62,10 @@ class _SOCPlant(SysBase):
                                    cellArea=cellArea, Ncells=Ncells)
         self.HT_A2 = heat.heater_to(name + '.HT_A2', media.Air(), T0)
         self.A2 = interfaces.Flange(name + '.A2', Medium=media.Air())
-
-    def solve_cell(self, store: bool = False):
-        """Feed the cell, solve it and cool the air to the system."""
-        self.connect_seq(self.F1, self.soc.F0, store=store)
-        self.connect_seq(self.A1, self.soc.A0, store=store)
-        self.solve(self.soc)
-        self.connect_seq(self.soc.A1, self.HT_A2.F0, store=store)
-        self.solve(self.HT_A2)
-        self.connect_seq(self.HT_A2.F1, self.A2, store=store)                   # air to the system
-
-    def run_sol(self):
-        self.seq_sol()
+        self.link(self.F1, self.soc.F0)
+        self.link(self.A1, self.soc.A0)
+        self.link(self.soc.A1, self.HT_A2.F0)
+        self.link(self.HT_A2.F1, self.A2)                                       # air to the system
 
 
 class SOECSys(_SOCPlant):
@@ -108,21 +87,15 @@ class SOECSys(_SOCPlant):
         self.WWater = interfaces.Flange(name + '.WWater', Medium=media.Water())
         self.getObjs()
 
-    def seq_sol(self, store: bool = False) -> None:
-        self.solve_cell(store)
         fuel_out = self.soc.F1
         if self.fuel_cooler:
-            self.connect_seq(fuel_out, self.HT_F2.F0, store=store)
-            self.solve(self.HT_F2)
+            self.link(fuel_out, self.HT_F2.F0)
             fuel_out = self.HT_F2.F1
-        self.connect_seq(fuel_out, self.GPU1.F0, store=store)
-        self.solve(self.GPU1)
-        self.connect_seq(self.GPU1.F1, self.F2, store=store)                    # dry syngas to the system
-        self.connect_seq(self.GPU1.F2, self.HT_W1.F0, store=store)
-        self.solve(self.HT_W1)
-        self.connect_seq(self.HT_W1.F1, self.Chm1.F0, store=store)
-        self.solve(self.Chm1)
-        self.connect_seq(self.Chm1.F1, self.WWater, store=store)                # waste water to the system
+        self.link(fuel_out, self.GPU1.F0)
+        self.link(self.GPU1.F1, self.F2)                                        # dry syngas to the system
+        self.link(self.GPU1.F2, self.HT_W1.F0)
+        self.link(self.HT_W1.F1, self.Chm1.F0)
+        self.link(self.Chm1.F1, self.WWater)                                    # waste water to the system
 
 
 class SOECSysV2(SOECSys):
@@ -141,9 +114,5 @@ class CO2Sys(_SOCPlant):
         self.HT_F2 = heat.heater_to(name + '.HT_F2', media.Fuel_CH4(), T_HT2)
         self.F2 = interfaces.Flange(name + '.F2', Medium=media.Fuel_CH4())
         self.getObjs()
-
-    def seq_sol(self, store: bool = False) -> None:
-        self.solve_cell(store)
-        self.connect_seq(self.soc.F1, self.HT_F2.F0, store=store)
-        self.solve(self.HT_F2)
-        self.connect_seq(self.HT_F2.F1, self.F2, store=store)                   # syngas to the system
+        self.link(self.soc.F1, self.HT_F2.F0)
+        self.link(self.HT_F2.F1, self.F2)                                       # syngas to the system

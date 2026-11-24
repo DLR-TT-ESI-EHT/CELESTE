@@ -105,8 +105,9 @@ Check the installation with `python -c "import celeste; print(celeste.__version_
 
 ### A system
 
-A system is a class derived from `SysBase`. Units are created in `__init__`,
-`seq_sol` connects them in flow order and solves them one after the other.
+A system is a class derived from `SysBase`. Units are created in `__init__` and the streams between them are
+declared once with `link(outlet, inlet)`; CELESTE generates the solve order and the tear streams of recycles.
+(A hand-written `seq_sol` with `connect_seq` still works.)
 
 ```python
 from celeste.CSL import SysBase, components, flow, heat, media, turbomachinery
@@ -121,12 +122,9 @@ class AirCompression(SysBase):
         self.cooler.F1.T = T_out
         self.sink = flow.Sink(name + '.sink', media.Air())
 
-    def seq_sol(self, store=False):
-        self.connect_seq(self.source.F1, self.comp.F0, store=store)
-        self.comp._sol = self.comp.run_sol()
-        self.connect_seq(self.comp.F1, self.cooler.F0, store=store)
-        self.cooler._sol = self.cooler.run_sol()
-        self.connect_seq(self.cooler.F1, self.sink.F0, store=store)
+        self.link(self.source.F1, self.comp.F0)
+        self.link(self.comp.F1, self.cooler.F0)
+        self.link(self.cooler.F1, self.sink.F0)
 
 plant = AirCompression('plant')
 plant.run_sol()
