@@ -6,6 +6,7 @@ Three tools on every `SysBase` system, independent of each other:
 |---|---|
 | `link(outlet, inlet)` | declare the streams once; the solve order and the tear streams are generated (see [recycles](recycles.md#declaring-the-flowsheet-instead)) |
 | `add_spec(target, value, vary=...)` | design specifications instead of hand-written `Optimiser` methods |
+| `equations()` / `print_equations()` | what each unit solves: its equations, unknowns and current residual, or "algorithmic" for units that assign the outlet from the inlet |
 | `pfd()` | interactive process flow diagram with stream tables on hover |
 
 ## Design specifications

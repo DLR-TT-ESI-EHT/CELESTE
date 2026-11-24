@@ -393,3 +393,15 @@ def test_pfd(tmp_path):
         soc.pfd()
     soc.run_sol()
     assert '2 back stream' in soc.pfd().html
+
+
+def test_equations_listing():
+    from celeste.CSL.systems.SOCsystem import SOCsysRecupe
+    s = SOCsysRecupe('socsys', I=10.0, Ncells=1000, na0=0.5)
+    s.run_sol()
+    df = s.equations().set_index('unit')
+    assert df.loc['soc', 'solved_as'] == 'equations' and df.loc['soc', 'equations'] == 2 and df.loc['soc', 'residual'] < 1e-8
+    assert 'WGS and MSR equilibrium' in df.loc['soc', 'equation']
+    assert df.loc['HT_F0', 'solved_as'] == 'algorithmic'
+    text = s.print_equations()
+    assert 'soc (SOC): 2 equations in 2 unknowns' in text and 'HT_F0 (Heater)' in text

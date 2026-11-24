@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from itertools import combinations
 
 import networkx as nx
+import numpy as np
+import pandas as pd
 
 
 @dataclass
@@ -184,6 +186,49 @@ class FlowsheetMixin:
                 lines.append(f'{i}. loop [{names}]  tear: {tears}')
             else:
                 lines.append(f'{i}. {names}')
+        text = '\n'.join(lines)
+        print(text)
+        return text
+
+    # ---- what is being solved ---------------------------------------------------------------------------
+    def equations(self) -> pd.DataFrame:
+        """
+        The equations the units solve, one row per unit: ``solved as`` is ``'equations'`` for a unit that solves a system
+        of equations for its unknowns (it has ``f_sol``; ``equation`` is the description of its active ``Eqs``) and
+        ``'algorithmic'`` for a unit that assigns its outlet from its inlet. ``residual`` is the largest absolute
+        residual of the unit's equations at the current state (after a solve it is ~0).
+        """
+        rows = []
+        for path, unit in self._units():
+            if hasattr(unit, 'f_sol'):
+                doc = (getattr(unit.Eqs, '__doc__', None) or '').strip().split('\n')[0] or f'see {type(unit).__name__}.Eqs'
+                try:
+                    r = np.atleast_1d(np.asarray(unit.Eqs(), dtype=float))
+                    n_eq, residual = r.size, float(np.max(np.abs(r))) if r.size else 0.0
+                except Exception:
+                    n_eq, residual = getattr(unit, 'n_unknowns', np.nan), np.nan
+                rows.append(dict(unit=path, type=type(unit).__name__, solved_as='equations',
+                                 unknowns=getattr(unit, 'n_unknowns', n_eq), equations=n_eq, residual=residual, equation=doc))
+            else:
+                rows.append(dict(unit=path, type=type(unit).__name__, solved_as='algorithmic', unknowns=0, equations=0,
+                                 residual=np.nan, equation='outlet assigned from the inlet'))
+        return pd.DataFrame(rows, columns=['unit', 'type', 'solved_as', 'unknowns', 'equations', 'residual', 'equation'])
+
+    def print_equations(self) -> str:
+        """Text of ``equations()`` plus the streams and design specifications of the system (also printed)."""
+        df = self.equations()
+        lines = [f'{self.name}: {len(df)} units, {int((df.solved_as == "equations").sum())} solve a system of equations '
+                 f'({int(df.equations.sum())} equations), the rest are algorithmic']
+        for row in df.itertuples():
+            if row.solved_as == 'equations':
+                lines.append(f'  {row.unit} ({row.type}): {row.equations} equations in {row.unknowns} unknowns, '
+                             f'max |residual| {row.residual:.2e}\n      {row.equation}')
+            else:
+                lines.append(f'  {row.unit} ({row.type}): {row.equation}')
+        lines.append(f'streams declared with link(): {len(self.streams)} (copied between the units in the solve order)')
+        specs = self.__dict__.get('_specs', [])
+        if specs:
+            lines.append(f'design specifications: {len(specs)}, each solver iteration is a full run_sol')
         text = '\n'.join(lines)
         print(text)
         return text
