@@ -12,7 +12,8 @@ version may notice.
   what `Exloss` meant until now) and `Exloss` (exergy that leaves the unit to the environment as heat at T > T0 and
   is not used, `max(0, -Exth)`: a cooler, a cooled reactor or compressor, the stack heat). System level:
   `exergy_df()` (both per unit), `tot_Exdest()`, `tot_Exloss()`, and `exergy_summary(products=None)` with
-  `Ex_in = Ex_product + Ex_unused + Exloss + Exdest` (the remainder is checked), `efficiency`, `efficiency_max`
+  `Ex_in = Ex_product + Exloss + Exdest` (the remainder is checked; the system `Exloss` is the heat
+  rejected plus the outlet streams that are not products), `efficiency`, `efficiency_max`
   (every irreversibility removed) and `destruction_share`; docs/conventions.md
 - **`SysBase.pfd()`**: interactive process flow diagram (layered layout, orthogonal streams, recycles dashed;
   stream state and composition and unit duties on hover) as one self-contained HTML file. The drawing is the

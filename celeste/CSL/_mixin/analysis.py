@@ -186,12 +186,13 @@ class ReportingMixin:
         Exergy balance of the system [kJ/s] and its efficiencies.
 
         ``products`` names the sinks or outlet flanges (name or path, or a list of them) whose stream is the useful product;
-        by default every sink and every outlet flange of the system is a product. The other sinks and the heat that leaves the units at T > T0 count
-        as exergy left over. Net work delivered by units (W < 0) is a product.
+        by default every sink and every outlet flange of the system is a product. The other sinks (flue gas, purges, waste) and the heat that leaves
+        the units at T > T0 are exergy lost to the environment. Net work delivered by units (W < 0) is a product.
 
-        ``Ex_in = Ex_product + Ex_unused + Exloss + Exdest`` (``Ex_balance`` is the remainder, ~0)
+        ``Ex_in = Ex_product + Exloss + Exdest`` (``Ex_balance`` is the remainder, ~0), with
+        ``Exloss = Exloss_heat + Exloss_streams``
         ``efficiency      = Ex_product/Ex_in``
-        ``efficiency_max  = 1 - (Ex_unused + Exloss)/Ex_in``, the efficiency with every irreversibility removed
+        ``efficiency_max  = 1 - Exloss/Ex_in``, the efficiency with every irreversibility removed
         ``destruction_share = Exdest/Ex_in``
         """
         if isinstance(products, str):
@@ -218,11 +219,12 @@ class ReportingMixin:
         ex_in = float(self.tot_Ex_Flow_in()) + feeds + w_in + float(self.tot_exth_in())
         out_prod += -float(W[W < 0].sum())
         dest = float(self.tot_Exdest())
-        left = float(self.tot_Exloss())
-        tab = {'Ex_in': ex_in, 'Ex_product': out_prod, 'Ex_unused': out_unused, 'Exloss': left, 'Exdest': dest,
-               'Ex_balance': ex_in - out_prod - out_unused - left - dest}
+        heat = float(self.tot_Exloss())
+        loss = heat + out_unused
+        tab = {'Ex_in': ex_in, 'Ex_product': out_prod, 'Exloss': loss, 'Exloss_heat': heat, 'Exloss_streams': out_unused,
+               'Exdest': dest, 'Ex_balance': ex_in - out_prod - loss - dest}
         if abs(ex_in) > 1e-12:
-            tab.update(efficiency=out_prod/ex_in, efficiency_max=1 - (out_unused + left)/ex_in,
+            tab.update(efficiency=out_prod/ex_in, efficiency_max=1 - loss/ex_in,
                        destruction_share=dest/ex_in)
         return pd.Series(tab, name=self.name, dtype=float)
 
