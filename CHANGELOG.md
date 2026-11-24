@@ -8,6 +8,12 @@ version may notice.
 
 ### Added
 
+- **Exergy destruction and exergy left, separately**: every unit has `Exdest` (exergy destroyed, `T0*Sgen`; the old
+  `Exloss`, which always meant this) and `Exleft` (exergy of heat that leaves the unit at T > T0 and is not used,
+  `max(0, -Exth)`: a cooler, a cooled reactor or compressor, the stack heat). System level: `exergy_df()` (both per
+  unit), `tot_Exleft()`, and `exergy_summary(products=None)` with `Ex_in = Ex_product + Ex_unused + Exleft + Exdest`
+  (the remainder is checked), `efficiency`, `efficiency_max` (every irreversibility removed) and
+  `destruction_share`; docs/conventions.md
 - **`SysBase.pfd()`**: interactive process flow diagram (layered layout, orthogonal streams, recycles dashed;
   stream state and composition and unit duties on hover) as one self-contained HTML file. The drawing is the
   framework-independent package `celeste.pfd` (`draw`, `UnitView`, `StreamView`, `Terminal`); units and flanges say
@@ -240,6 +246,7 @@ These keep working and emit a `CelesteDeprecationWarning`:
 
 | Name | Use instead |
 |---|---|
+| `unit.Exloss`, `get_Exloss()`, `tot_Exloss()`, `exloss_df()` | `Exdest`, `get_Exdest()`, `tot_Exdest()`, `exergy_df()` (also gives `Exleft`) |
 | `SysBase.connect(pin1, pin2)` | `link(pin1, pin2)`; `eo_compile()` / `eo_sol()` build the connection equations |
 | `PCC_base`, `SOC_Nernst_avg` (no warning) | `PCC`, `SOC(..., V_model='average')` |
 | `PCC(Tpcc0=, Tpcc1=, extent=)` | `pcc.F0.T = ...`, `PCC(..., T=...)`, nothing |

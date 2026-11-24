@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from celeste import CSL
+from celeste._deprecation import deprecated
 
 
 class IntrospectionMixin:
@@ -136,12 +137,16 @@ class IntrospectionMixin:
                 heat[f'{self.name}.{i}'] = self.rgetattr(i)
         return heat
 
-    def get_Exloss(self):
+    def get_Exdest(self):
         exloss = {}
         for i in self.r_get():
             if not isinstance(self.rgetattr(i), (CSL.flow.SourceM, CSL.flow.Sink)):
                 exloss[f'{self.name}.{i}'] = self.rgetattr(i)
         return exloss
+
+    @deprecated('get_Exloss is renamed get_Exdest', removal=None)
+    def get_Exloss(self):
+        return self.get_Exdest()
 
     def SBcheck(self):
         sg = {}
@@ -158,29 +163,29 @@ class IntrospectionMixin:
         """Exergy destruction grouped by component class, in kW and % of the total."""
         groups = {'Compressors': 0, 'SOC': 0, 'ASU': 0, 'DAC': 0, 'Heaters': 0, 'Coolers': 0, 'GPU': 0,
                   'Reactor': 0, 'Separation': 0, 'Split_Mix': 0, 'Valves': 0}
-        tot = self.tot_Exloss()
-        for i, v in self.get_Exloss().items():
+        tot = self.tot_Exdest()
+        for i, v in self.get_Exdest().items():
             if isinstance(v, (CSL.components.Pump, CSL.turbomachinery.Compressor)):
-                groups['Compressors'] += v.Exloss
+                groups['Compressors'] += v.Exdest
             if isinstance(v, CSL.electrochem.SOC):
-                groups['SOC'] += v.Exloss
+                groups['SOC'] += v.Exdest
             if isinstance(v, CSL.components.ASU):
-                groups['ASU'] += v.Exloss
+                groups['ASU'] += v.Exdest
             if isinstance(v, CSL.components.DAC):
-                groups['DAC'] += v.Exloss
+                groups['DAC'] += v.Exdest
             if isinstance(v, CSL.heat.Heater):
-                groups['Heaters'] += np.where(v.Q > 0, v.Exloss, 0)
-                groups['Coolers'] += np.where(v.Q < 0, v.Exloss, 0)
+                groups['Heaters'] += np.where(v.Q > 0, v.Exdest, 0)
+                groups['Coolers'] += np.where(v.Q < 0, v.Exdest, 0)
             if isinstance(v, (CSL.reactors.EquilBase, CSL.reactors.ExtentReactor, CSL.reactors.HB_1D, CSL.reactors.Reformer)):
-                groups['Reactor'] += v.Exloss
+                groups['Reactor'] += v.Exdest
             if isinstance(v, CSL.components.GPUbase):
-                groups['GPU'] += v.Exloss
+                groups['GPU'] += v.Exdest
             if isinstance(v, CSL.separation.Flash):
-                groups['Separation'] += v.Exloss
+                groups['Separation'] += v.Exdest
             if isinstance(v, (CSL.flow.Mixer, CSL.flow.Splitter)):
-                groups['Split_Mix'] += v.Exloss
+                groups['Split_Mix'] += v.Exdest
             if isinstance(v, CSL.components.Valve) or 'valve' in i or 'Valve' in i:
-                groups['Valves'] += v.Exloss
+                groups['Valves'] += v.Exdest
         groups['Total'] = tot
         ex = pd.DataFrame({'Ex. destruction / kW': {k: float(v) for k, v in groups.items()}})
         ex.insert(1, '%', ex.values*100/tot)

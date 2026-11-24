@@ -40,7 +40,7 @@ class ModelBase(Base):
       inlet (``F0``, ``A0``, ``H0``, ``C0``, ``FH0``), every other port is an outlet
     * ``run_sol()`` brings the outlets in line with the inlets and parameters
     * ``Q`` / ``W`` are heat and work added to the unit in kJ/s (kW)
-    * ``Exloss`` is the exergy destroyed in kJ/s, ``Sgen`` the entropy generated in kJ/K/s
+    * ``Exdest`` is the exergy destroyed in kJ/s, ``Sgen`` the entropy generated in kJ/K/s
     '''
 
     #: kind of box in the process flow diagram (a key of ``celeste.pfd.KINDS``); None: from the module of the class
@@ -56,7 +56,7 @@ class ModelBase(Base):
         Unit families add their own rows: ``return super().pfd_view().add('PR', self.F1.P/self.F0.P)``.
         """
         view = UnitView(self.pfd_kind or _kind_from_class(type(self)))
-        view.add('Q', safe(self, 'Q'), 'kW').add('W', safe(self, 'W'), 'kW').add('Ex loss', safe(self, 'Exloss'), 'kW')
+        view.add('Q', safe(self, 'Q'), 'kW').add('W', safe(self, 'W'), 'kW').add('Ex destroyed', safe(self, 'Exdest'), 'kW').add('Ex left', safe(self, 'Exleft'), 'kW')
         sol = self.__dict__.get('_sol')
         if sol is not None and hasattr(sol, 'success'):
             view.add('converged', bool(sol.success))
@@ -69,13 +69,36 @@ class ModelBase(Base):
         return []
 
     @property
+    def Exdest(self):
+        """Exergy destroyed inside the unit in kJ/s (irreversibility, ``T0*Sgen``). Units override this; models that still assign it in ``ExBs()`` may do so."""
+        return self.__dict__.get('_Exdest_value', 0)
+
+    @Exdest.setter
+    def Exdest(self, value):
+        self.__dict__['_Exdest_value'] = value
+
+    @property
+    def Exleft(self):
+        """
+        Exergy that leaves the unit as heat and is not used by the process, in kJ/s (>= 0).
+
+        Heat that leaves the unit at T > T0 carries ``Q*(1 - T0/T)`` (``Exth``, negative for heat removed). It is
+        counted as left over here: a cooler, a cooled reactor or compressor rejects it. Exergy that is destroyed
+        is ``Exdest``; ``Exdest + Exleft`` together are what the unit takes away from the useful exergy.
+        Units without a heat duty have none.
+        """
+        return max(0., -float(self.Exth)) if hasattr(self, 'Exth') else 0.
+
+    @property
     def Exloss(self):
-        """Exergy destruction in kJ/s. Units override this; models that still assign it in ``ExBs()`` may do so."""
-        return self.__dict__.get('_Exloss_value', 0)
+        """Deprecated alias of ``Exdest`` (it always meant the exergy destroyed)."""
+        from .._deprecation import warn_deprecated
+        warn_deprecated('Exloss is renamed Exdest (exergy destroyed); the exergy rejected as heat is Exleft')
+        return self.Exdest
 
     @Exloss.setter
     def Exloss(self, value):
-        self.__dict__['_Exloss_value'] = value
+        self.Exdest = value
 
     @staticmethod
     def ViewFlange(flanges):
