@@ -8,6 +8,7 @@ version may notice.
 
 ### Added
 
+- **Exergy efficiency of the heat-integrated plant**: `exergy_summary(hen=hen)` and `hen_exergy(hen)` take a solved `HENSynthesiser` built from `pinch_stream_table()` and give the balance and efficiency with the recovered heat (heat exergy at the logarithmic mean temperatures, exchanger destruction, replaced heaters and coolers taken out); adds `Q_recovered` and `efficiency_no_integration`; docs/heat_integration.md. `heat_df` no longer fails for units with a heat duty but no `Exth` (the mixer)
 - **Exergy destruction and exergy loss, separately**: every unit has `Exdest` (exergy destroyed, `T0*Sgen`; this is
   what `Exloss` meant until now) and `Exloss` (exergy that leaves the unit to the environment as heat at T > T0 and
   is not used, `max(0, -Exth)`: a cooler, a cooled reactor or compressor, the stack heat). System level:
