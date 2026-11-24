@@ -7,6 +7,7 @@ from .. import solvers
 import numpy as np
 from numpy.typing import NDArray as npArray
 from typing import Callable, override, Literal 
+from ..pfd.views import safe
 
 class HexBase(ModelBase):
     """      
@@ -41,6 +42,14 @@ class HexBase(ModelBase):
 
     """
 
+    pfd_kind = 'heat'
+
+    def pfd_view(self):
+        '''Duty, effectiveness and the temperatures of both sides.'''
+        return (super().pfd_view().add('effectiveness', safe(self, 'epsilon'))
+                .add('hot in / out', f'{self.H0.T:.1f} / {self.H1.T:.1f}', 'K')
+                .add('cold in / out', f'{self.C0.T:.1f} / {self.C1.T:.1f}', 'K'))
+
     def __init__(self, name:str, MediumH0:media.Medium_Base, MediumC0:media.Medium_Base,
                  MediumH1:media.Medium_Base, MediumC1:media.Medium_Base):
         super().__init__(locals())
@@ -54,6 +63,7 @@ class HexBase(ModelBase):
         self.__C0: interfaces.Flange = interfaces.Flange(name + '.__C0', Medium=MediumC1)
 
     def Eqs(self):
+        """Energy balance of each side with the duty Q = epsilon*Qmax: h_H0 - h_H1 = Q/n_H and h_C1 - h_C0 = Q/n_C (unknowns H1.T, C1.T)."""
         self.H1.n = self.H0.n
         self.C1.n = self.C0.n
 
@@ -312,6 +322,12 @@ class Heater(ModelBase):
     
     """
     
+    pfd_kind = 'heat'
+
+    def pfd_view(self):
+        '''Duty and the inlet and outlet temperature.'''
+        return super().pfd_view().add('T in / out', f'{self.F0.T:.1f} / {self.F1.T:.1f}', 'K')
+
     def __init__(self, name:str, Medium0:media.Medium_Base, Medium1:media.Medium_Base|None=None, **legacy):
         Medium1 = Medium0 if Medium1 is None else Medium1
         super().__init__(locals())
@@ -320,6 +336,7 @@ class Heater(ModelBase):
         self._init_state(legacy)
         
     def Eqs(self):
+        """Outlet has the inlet flow, composition and pressure; the temperature or duty is prescribed."""
         self.F1.n = self.F0.n
         self.F1.Xi = self.F0.Xi
         self.F1.P = self.F0.P

@@ -4,9 +4,9 @@
 
 | Layer | Module | Status |
 |---|---|---|
-| ideal-gas properties | `celeste.jx.nasa`, `celeste.jx.ideal` | in use – the kernel behind all NASA media |
-| real-gas / liquid properties | `celeste.jx.eos`, `celeste.jx.fluid` | in use – behind `Medium_PRbase` |
-| phase equilibrium | `celeste.jx.flash` | in use – behind `separation.Flash` |
+| ideal-gas properties | `celeste.jx.nasa`, `celeste.jx.ideal` | in use - the kernel behind all NASA media |
+| real-gas / liquid properties | `celeste.jx.eos`, `celeste.jx.fluid` | in use - behind `Medium_PRbase` |
+| phase equilibrium | `celeste.jx.flash` | in use - behind `separation.Flash` |
 | network cost gradients | `celeste.HEN.synthesis` | in use |
 | unit models | `celeste.jx.units` | prototype |
 
@@ -73,6 +73,29 @@ Every unit has two faces:
   as unknowns - for equation-oriented flowsheets. No unit solve is nested in
   them (except the voltage of an adiabatic SOC).
 
+Every unit names its streams (`inlets`, `outlets`, in the order of `residuals`), so a
+**`celeste.jx.flowsheet.Flowsheet`** declares a plant like a CSL system, with `link`:
+
+```python
+class Plant(Flowsheet):
+    def __init__(self):
+        self.steam = Stream(...)                    # feeds are streams of the plant
+        self.mix = units.Mixer(FUEL)
+        ...
+        self.link(self.steam, self.mix.a)
+        self.link(self.mix.out, self.rec.cold)
+        self.link(self.spl.out1, self.mix.b)        # recycle; an outlet that is not linked is a product
+
+s = plant.sequential()        # solve order and tear streams generated (same tearing as CSL); streams by name
+s = plant.solve(s)            # equation oriented: unit residuals in declaration order, Newton from s
+plant.print_equations()       # every unit with its in- and outgoing streams and its equations
+plant.pfd(s)                  # process flow diagram (celeste.pfd), stream states on the lines
+```
+
+Streams are named after the outlet they leave (`'mix.out'`) or the feed (`'steam'`). `pack`, `unpack` and
+`residuals(x, start)` are generated from the links; a design specification adds an unknown with `eqx.tree_at`
+and an equation (see `solve_with_spec` in the example).
+
 `examples/05_soec_flowsheet.py` builds an SOEC system (steam feed, hydrogen
 recycle, recuperator, heater, stack, water knock-out) both ways:
 
@@ -89,14 +112,14 @@ Differences to the CSL worth knowing:
 |---|---|---|
 | equilibrium reactor unknowns | outlet flow and all mole fractions (7) | reaction extents (2), logarithmic mass action laws |
 | compressor | mean heat capacity between inlet and outlet | exact isentropic path (work differs by ≈ 0.5 %) |
-| failure handling | `ConvergenceWarning` | none yet – see below |
+| failure handling | `ConvergenceWarning` | none yet - see below |
 
 ## Real-gas properties without CoolProp
 
 CoolProp cannot be called from compiled JAX code. `celeste.jx.eos` and
 `celeste.jx.fluid` replace it inside the JAX layer:
 
-- Peng–Robinson with an alpha function fitted to saturation pressures, so
+- Peng-Robinson with an alpha function fitted to saturation pressures, so
   vapour pressures are within 1 % of the reference equations;
 - gas, liquid and two-phase states from one function, `fluid.state_pt`;
 - 16 species, extensible through `tools/build_eos_table.py`.
@@ -104,7 +127,7 @@ CoolProp cannot be called from compiled JAX code. `celeste.jx.eos` and
 Accuracy is that of a cubic equation (see `docs/thermodynamics.md`). If higher
 accuracy is needed for a specific fluid, options that stay inside JAX are:
 
-1. volume translation (Péneloux) for liquid densities – a small addition to `eos.py`;
+1. volume translation (Péneloux) for liquid densities - a small addition to `eos.py`;
 2. multi-parameter Helmholtz equations for single fluids (water, CO2, H2):
    the functional forms are explicit in T and ρ and differentiable, but each
    fluid needs its coefficient set and a density solve;
@@ -130,8 +153,8 @@ both and lets each do what it is good at:
    gives a converged, physically sensible state for every flange. Newton's
    method converges fast from there and slowly or not at all from a poor guess.
 2. **Assemble the residuals.** Every unit already separates its explicit
-   relations from its residuals (`Eqs`, `f_sol`), and `SysBase.connect`
-   writes the connection equations. Collecting them over the flowsheet gives
+   relations from its residuals (`Eqs`, `f_sol`), and the declared streams
+   (`link`) give the connection equations. Collecting them over the flowsheet gives
    F(x); the recorded connections (`boundary_flanges`) say which flange values
    are unknowns and which are fixed by the feeds.
 3. **Solve and optimise in EO.** Design specifications (a product purity, an
@@ -150,7 +173,7 @@ replaces the Jacobian once the units are available as pure functions.
 
 ## Suggested migration path
 
-1. **Now** – keep modelling in the CSL; use `celeste.jx` for sweeps,
+1. **Now** - keep modelling in the CSL; use `celeste.jx` for sweeps,
    sensitivities and property work. Nothing in existing models has to change.
 2. **Port units one at a time** into `celeste.jx.units`, each with a test
    against its CSL counterpart, starting with explicit units (splitter, valve,

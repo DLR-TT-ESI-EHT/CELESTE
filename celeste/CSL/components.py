@@ -18,6 +18,8 @@ class GPUbase(ModelBase):
       energy balance closes (``heat_and_work()`` = W + Q_amb). It is not reported as process heat.
     * ``Exloss`` = exergy in + W - exergy out, ``Sgen`` = ΔS - Q_amb/T0, so Exloss = T0·Sgen.
     """
+    pfd_kind = 'separation'
+
     def __init__(self, name: str, eff, args):
         params = {k: v for k, v in dict(args).items() if k not in ('self', '__class__', 'legacy')}
         super().__init__({**params, 'name': name, 'eff': eff})
@@ -94,6 +96,7 @@ class GPU_1S(GPUbase):
         self._init_state(legacy)
 
     def Eqs(self)->None:
+        """Flow and composition pass through from F0 to F1."""
         self.F1.n = self.F0.n
         self.F1.Xi = self.F0.Xi
 
@@ -136,6 +139,7 @@ class GPU_2SV2(GPUbase):
         self._init_state(legacy)
 
     def Eqs(self):
+        """Outlet flows from the separation fractions Sep[i]; both outlets at the inlet T and P."""
         self.F1.n, self.F1.Xi = self._split(self.F0.n, self.F0.Xi, self.Sep)
         self.F2.n, self.F2.Xi = self._split(self.F0.n, self.F0.Xi, 1.0 - self.Sep)
         for f in (self.F1, self.F2):
@@ -203,6 +207,7 @@ class GPU_3S(GPUbase):
         self._init_state(legacy)
 
     def Eqs(self):
+        """Outlet flows from the separation fractions sep[i]; the species marked -1 goes to F3."""
         sep = np.asarray(self.sep, dtype=float)
         idx = np.flatnonzero(sep == -1)
         if idx.size != 1:
@@ -266,6 +271,7 @@ class ASU(ModelBase):
         self._init_state(self._spread(legacy, ['F0'], T=T, n=n, Xi=Xi))
 
     def Eqs(self):
+        """Outlets at the inlet temperature, O2 and N2 streams at the same pressure."""
         self.F1.T = self.F0.T
         self.F2.T = self.F0.T
         self.F2.P = self.F1.P
@@ -329,6 +335,12 @@ class Pump(ModelBase):
     _default_state = {'F0': dict(n=1.0, Xi=[0., 0., 0., 0., 1., 0.], T=298.15, P=1.0),
                       'F1': dict(n=1.0, T=298.15, P=3.0)}
 
+    pfd_kind = 'pressure'
+
+    def pfd_view(self):
+        '''Inlet and outlet pressure.'''
+        return super().pfd_view().add('P in / out', f'{self.F0.P:.4g} / {self.F1.P:.4g}', 'bar')
+
     def __init__(self, name:str, Medium:media.Medium_Base=media.Fuel_CH4L(), eff:float=1.0,
                  P_out:float|None=None, dP:float|None=None, **legacy):
         if P_out is not None and dP is not None:
@@ -348,6 +360,7 @@ class Pump(ModelBase):
             self.F1.P = self.F0.P + self.dP
 
     def Eqs(self):
+        """Outlet pressure from the pump set point; same flow and composition; work from the enthalpy rise."""
         self._set_outlet_pressure()
         self.F1.n = self.F0.n
         self.F1.Xi = self.F0.Xi
@@ -392,7 +405,7 @@ class Valve(ModelBase):
 
     The outlet temperature follows from h(T1, P1) = h(T0, P0). For ideal-gas media
     the enthalpy does not depend on pressure and T1 = T0; real-fluid media
-    (``*_PR``) show the Joule–Thomson effect.
+    (``*_PR``) show the Joule-Thomson effect.
 
     Parameters:
         name:   objects name
@@ -409,6 +422,12 @@ class Valve(ModelBase):
     W = 0.0
     Q = 0.0
 
+    pfd_kind = 'pressure'
+
+    def pfd_view(self):
+        '''Inlet and outlet pressure.'''
+        return super().pfd_view().add('P in / out', f'{self.F0.P:.4g} / {self.F1.P:.4g}', 'bar')
+
     def __init__(self, name:str, Medium:media.Medium_Base=media.Fuel_CH4(), P_out:float|None=None,
                  dP:float|None=None, **legacy):
         if P_out is not None and dP is not None:
@@ -420,6 +439,7 @@ class Valve(ModelBase):
         self._init_state(self._spread(legacy, ['F0'], n=n, Xi=Xi))
 
     def Eqs(self):
+        """Isenthalpic throttling to the outlet pressure: h_F1 = h_F0."""
         if self.P_out is not None:
             self.F1.P = self.P_out
         elif self.dP is not None:
@@ -502,6 +522,7 @@ class DAC(ModelBase):
         self._init_state(self._spread(legacy, ['F0'], T=T, n=n, Xi=Xi))
 
     def Eqs(self):
+        """Outlets at the inlet temperature; the CO2 stream and the remaining air at the same pressure."""
         self.F1.T = self.F0.T
         self.F2.T = self.F0.T
         self.F2.P = self.F1.P
@@ -565,6 +586,7 @@ class ChgMedium(ModelBase):
         return str(species)[:-3] if str(species).endswith('(L)') else str(species)
 
     def Eqs(self):
+        """Flow, temperature and pressure unchanged, composition mapped onto the species of the new medium."""
         spX0 = {}
         for sp, x in zip(self.F0.Medium.species, self.F0.Xi):
             spX0[self._base(sp)] = spX0.get(self._base(sp), 0.0) + (x if x > 1e-8 else 0.0)

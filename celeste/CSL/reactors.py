@@ -36,6 +36,12 @@ class EquilBase(ModelBase):
         Sgen:   entropy generated [kJ/K/s]
     """
 
+    pfd_kind = 'reaction'
+
+    def pfd_view(self):
+        '''Outlet temperature and pressure.'''
+        return super().pfd_view().add('T out', self.F1.T, 'K').add('P out', self.F1.P, 'bar')
+
     def __init__(self, name:str, Medium:media.Medium_Base, 
                  T:float=298.15, P:float=1.0, Q:float=0.0,
                  F0_n:float=1.0, F0_Xi=None, #F0_Xi:npArray[np.float64]|None=None, 
@@ -120,6 +126,15 @@ class ExtentReactor(ModelBase):
     ``xi - r(T, P, x)*Vol`` (kinetic) or ``ln(Q/K)`` (equilibrium).
     """
     reactions: dict = {}
+
+    pfd_kind = 'reaction'
+
+    def pfd_view(self):
+        '''Outlet temperature and pressure, and the extent of every reaction.'''
+        view = super().pfd_view().add('T out', self.F1.T, 'K').add('P out', self.F1.P, 'bar')
+        for k, xi in enumerate(np.atleast_1d(self.__dict__.get('_xi', []))):
+            view.add(f'extent {k + 1}', xi, 'mol/s')
+        return view
 
     def __init__(self, name: str, Medium: media.Medium_Base, T=None, Q=None, dP: float = 0.0):
         if T is not None and Q is not None:
@@ -835,6 +850,7 @@ class Reformer(ModelBase):
         self.r_i = np.zeros(3, dtype=float) #mol/m3cat/s
         
     def Eqs(self): 
+        """Reaction rates r_i of shift, methane reforming and propane pre-reforming at the outlet state and the resulting species balances."""
         
         self.r_i[0] = self.A[0]*np.exp(-self.Ea[0]/8.314/self.F1.T)*(self.F1.Xi[3]*self.F1.Xi[4]*self.F1.P**2 - (1/self.K_WGS())*self.F1.Xi[2]*self.F1.Xi[0]*self.F1.P**2)
         self.r_i[1] = self.A[1]*np.exp(-self.Ea[1]/8.314/self.F1.T)*(self.F1.Xi[1]*self.F1.Xi[4]*self.F1.P**2 - (1/self.K_MSR())*self.F1.Xi[3]*self.F1.Xi[0]**3*self.F1.P**4)

@@ -13,6 +13,8 @@ class SourceM(ModelBase):
     '''
     1+nSpecies unknowns
     '''
+    pfd_kind = 'terminal'
+
     def __init__(self, name: str, Medium: media.Medium_Base, F1_n:float=1., F1_Xi:npt.NDArray[float] | None =None, F1_T:float=298.15, F1_P:float=1.):
         super().__init__(locals())
         self.name = f'{name}(({name}))'
@@ -23,6 +25,8 @@ class Sink(ModelBase):
     '''
     2*(1+nSpecies) unknowns
     '''
+    pfd_kind = 'terminal'
+
     def __init__(self, name: str, Medium: media.Medium_Base, **legacy):
         super().__init__(locals())
 
@@ -33,6 +37,12 @@ class Sink(ModelBase):
 class Splitter(ModelBase):
     
     """Splits F0 into F1 (fraction ``Split``) and F2 (the rest) at the inlet state."""
+
+    pfd_kind = 'flow'
+
+    def pfd_view(self):
+        '''Fraction of the feed that goes to F1.'''
+        return super().pfd_view().add('split to F1', self.split)
 
     def __init__(self, name: str, Medium: media.Medium_Base, Split: float = 0.5, **legacy):
         super().__init__(locals())
@@ -53,6 +63,7 @@ class Splitter(ModelBase):
         self._split=val
         
     def Eqs(self):
+        """Outlets at the inlet state: n_F1 = split*n_F0, n_F2 = (1 - split)*n_F0."""
         self.F1.Medium.PTX = self.F0.Medium.PTX  
         self.F2.Medium.PTX = self.F0.Medium.PTX 
         self.F1.n = self.split*self.F0.n
@@ -75,6 +86,8 @@ class Mixer(ModelBase):
     
     """Adiabatic mixer of the feeds F0 and F1 into F2 at the pressure of F0."""
 
+    pfd_kind = 'flow'
+
     def __init__(self, name: str, Medium: media.Medium_Base, **legacy):
         super().__init__(locals())
         self.F0 = interfaces.Flange(name + '.F0', Medium=Medium)
@@ -85,6 +98,7 @@ class Mixer(ModelBase):
         self._init_state(self._spread(legacy, ['F0', 'F1', 'F2'], T=T, P=P))
         
     def Eqs(self):
+        """Mass balance n_F2 = n_F0 + n_F1, component balance, outlet P = P_F0, adiabatic mixing (outlet enthalpy from the feeds)."""
         self.F2.n = (self.F0.n + self.F1.n)
         self.F2.Xi = (self.F1.Xi*self.F1.n + self.F0.Xi*self.F0.n)/self.F2.n
         self.F2.P = self.F0.P 

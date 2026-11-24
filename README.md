@@ -55,17 +55,17 @@ reactor.Exloss     # exergy destroyed, kW
 
 | Package | Content |
 |---|---|
-| `celeste.CSL` | **CELESTE Standard Library** – unit models, media and systems |
+| `celeste.CSL` | **CELESTE Standard Library** - unit models, media and systems |
 | &nbsp;&nbsp;`interfaces` | `Flange`: the port that connects units and carries a stream (n, Xi, T, P → h, s, g, cp, exergy) |
-| &nbsp;&nbsp;`media` | Fluid definitions: ideal-gas NASA media (`Air`, `Fuel_CH4`, `Fuel_MeOH`, …), Peng–Robinson real-fluid media (`Fuel_CH4_PR`, `Water_PR`, …), CoolProp media |
+| &nbsp;&nbsp;`media` | Fluid definitions: ideal-gas NASA media (`Air`, `Fuel_CH4`, `Fuel_MeOH`, …), Peng-Robinson real-fluid media (`Fuel_CH4_PR`, `Water_PR`, …), CoolProp media |
 | &nbsp;&nbsp;`flow`, `heat`, `components` | Sources, sinks, mixers, splitters; heaters and heat exchangers; compressors, pumps, valves, black-box separators, ASU, DAC |
-| &nbsp;&nbsp;`reactors`, `electrochem` | Equilibrium, yield and kinetic reactors (methanation, Haber–Bosch incl. plug-flow bed, methanol, reforming); solid oxide cell and alkaline electrolyser |
-| &nbsp;&nbsp;`separation` | `Flash`: vapour–liquid flash drum with a stability-tested phase split |
+| &nbsp;&nbsp;`reactors`, `electrochem` | Equilibrium, yield and kinetic reactors (methanation, Haber-Bosch incl. plug-flow bed, methanol, reforming); solid oxide cell and alkaline electrolyser |
+| &nbsp;&nbsp;`separation` | `Flash`: vapour-liquid flash drum with a stability-tested phase split |
 | &nbsp;&nbsp;`equilibrium` | Equilibrium constants from NASA Gibbs energies, shared by reactors and cells |
 | &nbsp;&nbsp;`systems` | Ready-made subsystems (“boxes”) and example systems: compression train, SOEC and AEL boxes, condenser box, methanol loop |
 | `celeste.HEN` | `PinchAnalyser` (targets, composite curves) and `HENSynthesiser` (heat exchanger network) |
-| `celeste.FT` | Fischer–Tropsch media (C1–C50 with liquid phase), units and a Raoult flash |
-| `celeste.jx` | JAX kernels: properties, Peng–Robinson equation of state, flash, Equinox unit prototypes |
+| `celeste.FT` | Fischer-Tropsch media (C1-C50 with liquid phase), units and a Raoult flash |
+| `celeste.jx` | JAX kernels: properties, Peng-Robinson equation of state, flash, Equinox unit prototypes |
 | `celeste.solvers` | Robust nonlinear solves shared by all unit models |
 
 ## Installation
@@ -106,8 +106,8 @@ Check the installation with `python -c "import celeste; print(celeste.__version_
 ### A system
 
 A system is a class derived from `SysBase`. Units are created in `__init__` and the streams between them are
-declared once with `link(outlet, inlet)`; CELESTE generates the solve order and the tear streams of recycles.
-(A hand-written `seq_sol` with `connect_seq` still works.)
+declared once with `link(outlet, inlet)`; CELESTE generates the solve order and the tear streams of any recycle.
+(A hand-written `seq_sol` that connects the units with `connect_seq` works as well.)
 
 ```python
 from celeste.CSL import SysBase, components, flow, heat, media, turbomachinery
@@ -127,7 +127,14 @@ class AirCompression(SysBase):
         self.link(self.cooler.F1, self.sink.F0)
 
 plant = AirCompression('plant')
+plant.print_solve_order()  # the generated order (and tear streams, if there is a recycle)
 plant.run_sol()
+plant.print_equations()    # what each unit solves: its equations, or "algorithmic"
+plant.pfd('plant.html')    # interactive process flow diagram, stream and unit data on hover
+
+# design specification: the compressor outlet pressure for a cooler duty of -10 kW
+plant.add_spec('cooler.Q', -10.0, vary='comp.F1.P', bounds=(1.5, 20.0))
+plant.solve_specs()
 
 plant.work_df()            # work of every unit
 plant.heater_df()          # heaters and coolers
@@ -152,7 +159,7 @@ hen.network                                          # matches: duty, temperatur
 hen.plot_grid_diagram()
 ```
 
-### Vapour–liquid separation
+### Vapour-liquid separation
 
 ```python
 from celeste.CSL import media, separation
