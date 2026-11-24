@@ -23,7 +23,7 @@ print(f'compressor: converged={sol.success}, outlet {comp.F1.T:.1f} K, work {com
 
 cooler = heat.Heater('cooler', media.Air(), media.Air())
 cooler.F1.T = 310.0
-cooler.F0.Medium.PTX = comp.F1.Medium.PTX          # hand the stream over (systems do this with connect_seq)
+cooler.F0.Medium.PTX = comp.F1.Medium.PTX          # hand the stream over (systems declare the streams with link)
 cooler.run_sol()
 print(f'cooler: duty {cooler.Q:.3f} kW\n')
 
