@@ -15,7 +15,7 @@ them too; existing user models are not affected by any of this.
 | enthalpy, Gibbs energy, exergy, LHV | `h`, `g`, `Ex`, `LHV` | kJ/mol |
 | entropy, heat capacity | `s`, `cp` | kJ/mol/K |
 | heat, work | `Q`, `W` | kJ/s (kW) |
-| exergy destroyed, exergy left as heat | `Exdest`, `Exleft` | kJ/s (kW) |
+| exergy destroyed, exergy lost to the environment | `Exdest`, `Exloss` | kJ/s (kW) |
 | entropy generation | `Sgen` | kJ/K/s |
 
 `Q` and `W` are positive when they **enter** the unit. Enthalpies include the
@@ -124,7 +124,7 @@ their `phase0`, `phase1`, ... arguments: the phase of a port is part of the unit
 | `Q`, `W` | heat and work added |
 | `Exth` | exergy of the heat duty |
 | `Exdest`, `Sgen`, `Exeff` | exergy destroyed (`T0*Sgen`), entropy generated, exergy efficiency |
-| `Exleft` | exergy of heat that leaves the unit at T > T0 and is not used (`max(0, -Exth)`); `Exloss` is the deprecated name of `Exdest` |
+| `Exloss` | exergy that leaves the unit to the environment as heat at T > T0 and is not used (`max(0, -Exth)`) |
 | `MBcheck()` | prints the relative mass balance error, returns in - out |
 
 Units that are evaluated explicitly need no `f_sol`.

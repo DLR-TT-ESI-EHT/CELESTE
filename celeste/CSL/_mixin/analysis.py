@@ -170,15 +170,15 @@ class ReportingMixin:
         Exergy destroyed and exergy left (rejected as heat) by every unit [kJ/s].
 
         ``Exdest`` is the irreversibility of the unit (``T0*Sgen``) and can be reduced by a better design;
-        ``Exleft`` is the exergy of heat that leaves the unit at T > T0 and is not used by the process.
+        ``Exloss`` is the exergy that leaves the unit to the environment as heat at T > T0 and is not used by the process.
         """
         tab = {}
         for i, v in self.get_Exdest().items():
             tab[i] = {'Exdest': np.where(np.abs(v.Exdest) > 1e-7, v.Exdest, 0).round(5),
-                      'Exleft': np.where(np.abs(getattr(v, 'Exleft', 0)) > 1e-7, getattr(v, 'Exleft', 0), 0).round(5)}
+                      'Exloss': np.where(np.abs(getattr(v, 'Exloss', 0)) > 1e-7, getattr(v, 'Exloss', 0), 0).round(5)}
         if not tab:
             warnings.warn('exergy_df: the system has no units with exergy destruction, the DataFrame is empty')
-            return pd.DataFrame(columns=['Exdest', 'Exleft'], dtype=float)
+            return pd.DataFrame(columns=['Exdest', 'Exloss'], dtype=float)
         return pd.DataFrame(tab).transpose().astype(float)
 
     def exergy_summary(self, products=None) -> pd.Series:
@@ -189,9 +189,9 @@ class ReportingMixin:
         by default every sink and every outlet flange of the system is a product. The other sinks and the heat that leaves the units at T > T0 count
         as exergy left over. Net work delivered by units (W < 0) is a product.
 
-        ``Ex_in = Ex_product + Ex_unused + Exleft + Exdest`` (``Ex_balance`` is the remainder, ~0)
+        ``Ex_in = Ex_product + Ex_unused + Exloss + Exdest`` (``Ex_balance`` is the remainder, ~0)
         ``efficiency      = Ex_product/Ex_in``
-        ``efficiency_max  = 1 - (Ex_unused + Exleft)/Ex_in``, the efficiency with every irreversibility removed
+        ``efficiency_max  = 1 - (Ex_unused + Exloss)/Ex_in``, the efficiency with every irreversibility removed
         ``destruction_share = Exdest/Ex_in``
         """
         if isinstance(products, str):
@@ -218,18 +218,17 @@ class ReportingMixin:
         ex_in = float(self.tot_Ex_Flow_in()) + feeds + w_in + float(self.tot_exth_in())
         out_prod += -float(W[W < 0].sum())
         dest = float(self.tot_Exdest())
-        left = float(self.tot_Exleft())
-        tab = {'Ex_in': ex_in, 'Ex_product': out_prod, 'Ex_unused': out_unused, 'Exleft': left, 'Exdest': dest,
+        left = float(self.tot_Exloss())
+        tab = {'Ex_in': ex_in, 'Ex_product': out_prod, 'Ex_unused': out_unused, 'Exloss': left, 'Exdest': dest,
                'Ex_balance': ex_in - out_prod - out_unused - left - dest}
         if abs(ex_in) > 1e-12:
             tab.update(efficiency=out_prod/ex_in, efficiency_max=1 - (out_unused + left)/ex_in,
                        destruction_share=dest/ex_in)
         return pd.Series(tab, name=self.name, dtype=float)
 
-    @deprecated('exloss_df is replaced by exergy_df (Exdest and Exleft per unit)', removal=None)
+    @deprecated('exloss_df is replaced by exergy_df (Exdest and Exloss per unit); Exloss now means the exergy lost to the environment', removal=None)
     def exloss_df(self):
-        df = self.exergy_df()
-        return df[['Exdest']].rename(columns={'Exdest': 'Ex loss'})
+        return self.exergy_df()
 
     def tot_LHV_Flow_out(self):
         return np.sum([v.F0.LHV * v.F0.n for i, v in self.get_Sinks().items()])
@@ -246,13 +245,9 @@ class ReportingMixin:
     def tot_Exdest(self):
         return np.sum([v.Exdest for i, v in self.get_Exdest().items()])
 
-    def tot_Exleft(self):
-        """Exergy of heat that leaves the units at T > T0 and is not used, kJ/s."""
-        return np.sum([getattr(v, 'Exleft', 0.) for i, v in self.get_Exdest().items()])
-
-    @deprecated('tot_Exloss is renamed tot_Exdest', removal=None)
     def tot_Exloss(self):
-        return self.tot_Exdest()
+        """Exergy lost to the environment as heat at T > T0, kJ/s."""
+        return np.sum([getattr(v, 'Exloss', 0.) for i, v in self.get_Exdest().items()])
 
     def tot_heaters_in(self):
         df = self.heater_df()

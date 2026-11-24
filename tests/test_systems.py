@@ -59,29 +59,28 @@ def test_reports(train):
 
 
 def test_exergy_destruction_and_loss(train):
-    """Exdest is the irreversibility (T0*Sgen); Exleft the exergy of rejected heat; Exloss is the old name of Exdest."""
+    """Exdest is the irreversibility (T0*Sgen); Exloss the exergy of rejected heat; both are 0 for units without heat."""
     from celeste.CSL.exergy import T0
     ex = train.exergy_df()
-    assert list(ex.columns) == ['Exdest', 'Exleft']
+    assert list(ex.columns) == ['Exdest', 'Exloss']
     for name, unit in train.get_Exdest().items():
         assert unit.Exdest == pytest.approx(T0*unit.Sgen, rel=5e-3, abs=1e-6)
-        assert unit.Exleft >= 0
+        assert unit.Exloss >= 0
     coolers = [u for u in train.get_Exdest().values() if hasattr(u, 'Exth')]
-    assert all(c.Exleft == pytest.approx(max(0, -c.Exth)) for c in coolers)
-    assert train.tot_Exleft() == pytest.approx(ex.Exleft.sum()) and train.tot_Exleft() > 0
-    unit = next(iter(train.get_Exdest().values()))
-    with pytest.warns(DeprecationWarning, match='Exdest'):
-        assert unit.Exloss == unit.Exdest
-    with pytest.warns(DeprecationWarning):
-        assert train.tot_Exloss() == train.tot_Exdest()
+    assert all(c.Exloss == pytest.approx(max(0, -c.Exth)) for c in coolers)
+    assert train.tot_Exloss() == pytest.approx(ex.Exloss.sum()) and train.tot_Exloss() > 0
+    with pytest.warns(DeprecationWarning, match='get_Exdest'):
+        assert train.get_Exloss().keys() == train.get_Exdest().keys()
+    with pytest.warns(DeprecationWarning, match='exergy_df'):
+        assert train.exloss_df().equals(train.exergy_df())
 
 
 def test_exergy_summary_closes(train):
     s = train.exergy_summary()
     assert s.Ex_balance == pytest.approx(0, abs=1e-6)
-    assert s.Exdest == pytest.approx(train.tot_Exdest()) and s.Exleft == pytest.approx(train.tot_Exleft())
+    assert s.Exdest == pytest.approx(train.tot_Exdest()) and s.Exloss == pytest.approx(train.tot_Exloss())
     assert 0 < s.efficiency < s.efficiency_max <= 1
-    assert s.efficiency_max == pytest.approx(1 - s.Exleft/s.Ex_in - s.Ex_unused/s.Ex_in)
+    assert s.efficiency_max == pytest.approx(1 - s.Exloss/s.Ex_in - s.Ex_unused/s.Ex_in)
     assert s.destruction_share == pytest.approx(s.Exdest/s.Ex_in)
 
 

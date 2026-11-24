@@ -139,7 +139,7 @@ plant.solve_specs()
 plant.work_df()            # work of every unit
 plant.heater_df()          # heaters and coolers
 plant.exdest_df()          # exergy destruction by unit type
-plant.exergy_df()          # exergy destroyed and exergy left (rejected heat) per unit
+plant.exergy_df()          # exergy destroyed (`Exdest`) and lost to the environment (`Exloss`) per unit
 plant.exergy_summary()     # balance, efficiency and the efficiency without irreversibilities
 plant.MBcheck(), plant.EBcheck()                 # overall mass and energy balance
 print(plant.create_graph('mermaid', save=False)) # flowsheet as a Mermaid graph

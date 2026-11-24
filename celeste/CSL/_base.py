@@ -56,7 +56,7 @@ class ModelBase(Base):
         Unit families add their own rows: ``return super().pfd_view().add('PR', self.F1.P/self.F0.P)``.
         """
         view = UnitView(self.pfd_kind or _kind_from_class(type(self)))
-        view.add('Q', safe(self, 'Q'), 'kW').add('W', safe(self, 'W'), 'kW').add('Ex destroyed', safe(self, 'Exdest'), 'kW').add('Ex left', safe(self, 'Exleft'), 'kW')
+        view.add('Q', safe(self, 'Q'), 'kW').add('W', safe(self, 'W'), 'kW').add('Ex destroyed', safe(self, 'Exdest'), 'kW').add('Ex lost', safe(self, 'Exloss'), 'kW')
         sol = self.__dict__.get('_sol')
         if sol is not None and hasattr(sol, 'success'):
             view.add('converged', bool(sol.success))
@@ -78,27 +78,16 @@ class ModelBase(Base):
         self.__dict__['_Exdest_value'] = value
 
     @property
-    def Exleft(self):
+    def Exloss(self):
         """
-        Exergy that leaves the unit as heat and is not used by the process, in kJ/s (>= 0).
+        Exergy that leaves the unit to the environment as heat and is not used by the process, in kJ/s (>= 0).
 
         Heat that leaves the unit at T > T0 carries ``Q*(1 - T0/T)`` (``Exth``, negative for heat removed). It is
-        counted as left over here: a cooler, a cooled reactor or compressor rejects it. Exergy that is destroyed
-        is ``Exdest``; ``Exdest + Exleft`` together are what the unit takes away from the useful exergy.
+        counted as lost here: a cooler, a cooled reactor or compressor rejects it. Exergy that is destroyed
+        is ``Exdest``; ``Exdest + Exloss`` together are what the unit takes away from the useful exergy.
         Units without a heat duty have none.
         """
         return max(0., -float(self.Exth)) if hasattr(self, 'Exth') else 0.
-
-    @property
-    def Exloss(self):
-        """Deprecated alias of ``Exdest`` (it always meant the exergy destroyed)."""
-        from .._deprecation import warn_deprecated
-        warn_deprecated('Exloss is renamed Exdest (exergy destroyed); the exergy rejected as heat is Exleft')
-        return self.Exdest
-
-    @Exloss.setter
-    def Exloss(self, value):
-        self.Exdest = value
 
     @staticmethod
     def ViewFlange(flanges):
