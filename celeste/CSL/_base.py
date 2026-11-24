@@ -205,9 +205,14 @@ class SysBase(FlowsheetMixin, SpecMixin, PFDMixin, GraphMixin, ReportingMixin, I
         Equation-based connection: append the residuals that tie two flanges together to ``self.Eq``
         (equality of n, T, P and zero sum of the flow variables Q, I).
 
+        Deprecated: declare the stream with ``link(pin1, pin2)``; ``eo_compile()`` / ``eo_sol()`` build and solve
+        the connection equations from the declared streams.
+
         Raises:
             ValueError: if the two pins are not of the same type / medium.
         """
+        from .._deprecation import warn_deprecated
+        warn_deprecated("connect() is deprecated; declare the stream with link() and solve the equations with eo_sol()")
         Eq = np.array([])
         self._check_connection(pin1, pin2)
         self._record_link(pin1, pin2)
