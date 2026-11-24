@@ -67,3 +67,35 @@ Unknowns are the state (n, T, P, Xi) of every stream between two units and the u
 system of equations (`f_sol`, for example the SOC extents). Equations are "stream = outlet of the unit it leaves" and the
 `f_sol` residuals of those units (`print_equations()` lists them). A unit without `f_sol` is an explicit function of its
 inlet. The sweep matters: from a bad start the equations can converge to a wrong root, or not at all.
+
+### What the diagram shows
+
+The drawing lives in its own package, `celeste.pfd`, which knows nothing about CELESTE units: every unit and
+stream describes itself with a `pfd_view()` method.
+
+- `ModelBase.pfd_view()` returns a `UnitView`: `kind` (the colour of the box, class attribute `pfd_kind`) and the
+  rows Q, W, Ex loss and converged. Unit families add their own rows: heat exchangers the effectiveness and the
+  temperatures of both sides, heaters T in / out, compressors and turbines PR, efficiency and T out, SOC/PCC the
+  current, j, ideal and cell voltage, conversion and T out, reactors T, P and the extents, the flash drum T, P and
+  the vapour fraction, the splitter its split.
+- `Flange.pfd_view()` returns a `StreamView`: n, m, T, P, h, Ex (and the phase) and the composition.
+
+To show something else, override `pfd_view` in your class:
+
+```python
+class MyStack(electrochem.SOC):
+    def pfd_view(self):
+        return super().pfd_view().add('ASR', self.ASR_mean, 'ohm cm2')
+```
+
+or replace the view of some units in one drawing, by name or by class:
+
+```python
+from celeste.pfd import UnitView
+plant.pfd(views={'soc': lambda u: UnitView('electrochem').add('V', u.Vop, 'V'),
+                 heat.Heater: lambda u: UnitView('heat').add('Q', u.Q, 'kW')})
+```
+
+`celeste.pfd.draw(name, units, streams)` draws any flowsheet from `{label: unit}` and
+`[(source, destination, stream, title)]` (sources and destinations are labels or `Terminal`s), so other models can
+use the same diagrams by giving their objects a `pfd_view`.

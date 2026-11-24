@@ -9,7 +9,14 @@ version may notice.
 ### Added
 
 - **`SysBase.pfd()`**: interactive process flow diagram (layered layout, orthogonal streams, recycles dashed;
-  stream state and composition and unit duties on hover) as one self-contained HTML file
+  stream state and composition and unit duties on hover) as one self-contained HTML file. The drawing is the
+  framework-independent package `celeste.pfd` (`draw`, `UnitView`, `StreamView`, `Terminal`); units and flanges say
+  what they show with `pfd_view()` (unit families add their own rows; `pfd_kind` sets the colour), and
+  `pfd(views={name or class: function})` replaces it for one drawing. Tear selection moved to `celeste.tearing`
+- **`celeste.jx.flowsheet.Flowsheet`**: jx plants declared with `link(outlet, inlet)` like CSL systems; the jx units
+  name their ports (`inlets`/`outlets`, e.g. `mix.out`, `rec.cold`; the SOC ports are `fuel_in`, `air_in`,
+  `fuel_out`, `air_out`). Generated: solve order and tears (`sequential()`), `pack`/`unpack`, `residuals`,
+  `solve()` (EO), `print_equations()`, `pfd()`. `examples/05_soec_flowsheet.py` uses it (same results)
 - **`equations()` / `print_equations()`**: what each unit of a system solves - units with a system of equations (equation count, unknowns, residual at the current state, description of the active `Eqs`) and algorithmic units
 - **Systems and boxes declare their streams with `link`** (`SimpleHeaterSys`, `SimpleCompressorSys`, `Ncomp`, `AELSys`, `SOECSys`, `CO2Sys`, `SOCBasicSys`, `SOCsysRecupe`, `CondenserBox`); the hand-written `seq_sol`/`run_sol` of these classes is gone, results are unchanged. `SysBase.unlink(outlet, inlet)` removes a declared stream
 - **Equation-oriented solve** on top of the declared streams (the sequential-modular solve is unchanged): `eo_compile()` builds the unknowns (stream states, unit unknowns such as the SOC extents) and equations (stream = outlet of its unit, unit `f_sol` residuals), `initialise()` starts from a sequential sweep or the current state, `solve()` solves all equations together; `eo_sol()` does the three steps and `solve_specs(eo=True)` uses it in every design-spec iteration, warm-started; `HexNTU.n_unknowns = 2`; docs/flowsheets.md
