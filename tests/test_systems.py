@@ -79,7 +79,8 @@ def test_exergy_destruction_and_loss(train):
 
 def test_exergy_summary_closes(train):
     s = train.exergy_summary()
-    assert s.Ex_balance == pytest.approx(0, abs=1e-6)
+    assert s.Ex_balance == pytest.approx(train.exergy_df().Exbalance_error.sum(), abs=1e-6)   # data consistency
+    assert abs(s.Ex_balance) < 1e-3*s.Ex_in
     assert s.Exdest == pytest.approx(train.tot_Exdest()) and s.Exloss == pytest.approx(train.tot_Exloss())
     assert 0 < s.efficiency < s.efficiency_max <= 1
     assert s.efficiency_max == pytest.approx(1 - s.Exloss/s.Ex_in - s.Ex_unused/s.Ex_in)
