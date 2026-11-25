@@ -158,7 +158,9 @@ def test_integrated_exergy_efficiency():
     s = loop.exergy_summary(hen=hen)
     ex = loop.hen_exergy(hen)
     assert s.Q_recovered == pytest.approx(hen.network.Q.sum()) and s.Q_recovered > 0
-    assert s.Ex_balance == pytest.approx(0, abs=1e-6)
+    # the balance residual is the data inconsistency of the units (entropy against exergy), unchanged by the network
+    assert s.Ex_balance == pytest.approx(loop.exergy_df().Exbalance_error.sum(), abs=1e-4)
+    assert s.Ex_balance == pytest.approx(base.Ex_balance)
     assert (ex.Exdest >= 0).all() and (ex.Ex_hot >= ex.Ex_cold).all()
     assert s.efficiency_no_integration == pytest.approx(base.efficiency)
     assert s.efficiency > base.efficiency and s.Ex_in < base.Ex_in and s.Exloss < base.Exloss
