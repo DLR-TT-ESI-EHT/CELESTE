@@ -170,7 +170,7 @@ class Flash(ModelBase):
         return self.Q*(1 - 298.15/self.F1.T)
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex - self.F2.n*self.F2.Ex + self.Exth
 
     @property

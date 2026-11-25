@@ -8,10 +8,11 @@ version may notice.
 
 ### Added
 
+- **`Exdest` from the entropy balance**: `Exdest = T0*Sgen` (Gouy-Stodola) wherever a unit defines `Sgen`; the exergy balance of the unit is `Exdest_balance` and `Exbalance_error = Exdest_balance - Exdest` says how well the exergy and entropy data of its streams agree. The system balance of `exergy_summary` (`Ex_balance`) is therefore a real check. `exergy_df` warns when a unit has a negative destruction (the second law is violated inside the unit: inconsistent property models)
 - **Exergy destruction and exergy loss, separately**: every unit has `Exdest` (exergy destroyed, `T0*Sgen`; this is
   what `Exloss` meant until now) and `Exloss` (exergy that leaves the unit to the environment as heat at T > T0 and
   is not used, `max(0, -Exth)`: a cooler, a cooled reactor or compressor, the stack heat). System level:
-  `exergy_df()` (both per unit), `tot_Exdest()`, `tot_Exloss()`, and `exergy_summary(products=None)` with
+  `exergy_df()` (both per unit, plus `Exbalance_error`), `tot_Exdest()`, `tot_Exloss()`, and `exergy_summary(products=None)` with
   `Ex_in = Ex_product + Ex_unused + Exloss + Exdest` (the remainder is checked), `efficiency`, `efficiency_max`
   (every irreversibility removed) and `destruction_share`; docs/conventions.md
 - **`SysBase.pfd()`**: interactive process flow diagram (layered layout, orthogonal streams, recycles dashed;
@@ -212,6 +213,7 @@ version may notice.
 | What | Before | Now | Size of the effect |
 |---|---|---|---|
 | `CompIsent` outlet state | ideal-gas formula with the mean heat capacity of inlet and outlet, solved with `root` | real-gas isentropic outlet from the medium, then the efficiency correction (also used by the mapped compressors and turbines); explicit, so `run_sol` returns a result with `success=True` and `get_success()` no longer lists compressors | outlet temperature 511.43 → 512.49 K and work 6.290 → 6.321 kJ/s for air, 300 K, 1 → 5 bar, eff 0.8; the reversible case now has Sgen = 0 exactly (was 1e-4) |
+| `unit.Exdest` | exergy balance of the unit | `T0*Sgen` (the old value is `Exdest_balance`) | below 0.4 % for reacting units (known data gap), exact for heat exchangers, mixers and compressors; the flash of the methanol loop with NASA media gives a negative value (-19.6 against -18.8 kW) because its phase split (Peng-Robinson) and its stream properties (NASA) are not consistent |
 | `unit.Exloss`, `tot_Exloss()` | exergy destroyed | exergy lost to the environment as heat; the exergy destroyed is `Exdest`, `tot_Exdest()` | every use of `Exloss` as the destruction must read `Exdest`; `exdest_df` is unchanged |
 | `GPU_*` `Exloss`, `Sgen` | exergy in - exergy out (negative for a separation), ΔS | exergy in + W - exergy out = W - Wid ≥ 0; ΔS - Q_amb/T0, so Exloss = T0·Sgen | GPU rows of `exdest_df` grow by the separation work, e.g. 0.94 kW in `SOECSys` |
 | `SysBase.MBcheck()`, `EBcheck()` | sources and sinks only, `MBcheck` out - in; `EBcheck` from the heater / heat / work tables | boundary streams from the recorded connections, in - out; Σ(Q + W) of every unit | sign of `MBcheck`; `EBcheck` now closes for boxes without sources and sinks (e.g. `SOCsysRecupe`, `CO2Sys`) |

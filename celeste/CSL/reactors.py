@@ -83,7 +83,7 @@ class EquilBase(ModelBase):
         return self.Q*(1 - (298.15/self.F1.T))
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex + self.Exth
 
     @property
@@ -191,7 +191,7 @@ class ExtentReactor(ModelBase):
         return self.Q*(1 - 298.15/self.F1.T) if not (self.Q_spec == 0) else 0.0
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex + self.Exth
 
     @property
@@ -639,7 +639,7 @@ class HB_1D(ModelBase):
         return self.Q*(1 - 298.15/self.T_wall)
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex + self.Exth
 
     @property

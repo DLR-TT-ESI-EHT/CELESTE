@@ -45,7 +45,7 @@ class GPUbase(ModelBase):
         return float(self.W + self.Q_amb)
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return sum(f.n*f.Ex for f in self.inlets) + self.W - sum(f.n*f.Ex for f in self.outlets)
 
     @property
@@ -294,7 +294,7 @@ class ASU(ModelBase):
         return self.Q*(1 - (298.15/self.F1.T))
     
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex - self.F2.n*self.F2.Ex + self.W + self.Exth
 
     @property
@@ -380,7 +380,7 @@ class Pump(ModelBase):
         return (self.F0.m*1e-1*(self.F1.P - self.F0.P)/self.F0.Medium.rho)*eff_ratio
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex + self.W 
 
     @property
@@ -459,7 +459,7 @@ class Valve(ModelBase):
         return solvers.solve_scalar(self._dh, max(1.0, T0 - 150.0), T0 + 150.0, x0=T0, name=self.name)
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex
 
     @property
@@ -548,7 +548,7 @@ class DAC(ModelBase):
         return self.Q*(1 - (298.15/self.F2.T))
     
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex - self.F2.n*self.F2.Ex + self.W + self.Exth
 
     @property
@@ -599,7 +599,7 @@ class ChgMedium(ModelBase):
         self.F1.P = self.F0.P
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex
 
     @property
