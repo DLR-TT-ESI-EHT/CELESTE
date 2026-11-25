@@ -198,7 +198,8 @@ class ReportingMixin:
         by default every sink and every outlet flange of the system is a product. The other sinks and the heat that leaves the units at T > T0 count
         as exergy left over. Net work delivered by units (W < 0) is a product.
 
-        ``Ex_in = Ex_product + Ex_unused + Exloss + Exdest`` (``Ex_balance`` is the remainder, ~0)
+        ``Ex_in = Ex_product + Ex_unused + Exloss + Exdest`` (``Ex_balance`` is the remainder: the sum of the ``Exbalance_error`` of the units,
+        i.e. how well the exergy and entropy data agree; ~0 for consistent models)
         ``efficiency      = Ex_product/Ex_in``
         ``efficiency_max  = 1 - (Ex_unused + Exloss)/Ex_in``, the efficiency with every irreversibility removed
         ``destruction_share = Exdest/Ex_in``
