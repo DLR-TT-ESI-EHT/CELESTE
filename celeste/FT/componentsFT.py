@@ -158,7 +158,7 @@ class GPU_2S(comp.GPUbase):
         return float(np.where(self.Wid > 0, self.Wid/self.eff, self.Wid*self.eff))
     
     @property
-    def Exdest(self):
+    def Exdest_balance(self):
         return self.W - self.Wid
         
     def run_sol(self):
@@ -232,7 +232,7 @@ class GPU_2SV2(comp.GPUbase):
         return float(np.where(self.Wid > 0, self.Wid/self.eff, self.Wid*self.eff))
     
     @property
-    def Exdest(self):
+    def Exdest_balance(self):
         return self.W - self.Wid
       
     def run_sol(self):
@@ -471,7 +471,7 @@ class Flash(ModelBase):
         return self.F1.n*self.F1.h + self.F2.n*self.F2.h - self.F0.n*self.F0.h
 
     @property
-    def Exdest(self):
+    def Exdest_balance(self):
         from ..CSL.exergy import T0
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex - self.F2.n*self.F2.Ex + self.Q*(1 - T0/self.F1.T)
 

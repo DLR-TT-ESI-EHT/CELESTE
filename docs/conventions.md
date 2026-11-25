@@ -123,7 +123,8 @@ their `phase0`, `phase1`, ... arguments: the phase of a port is part of the unit
 | `run_sol()` | solves the unit; returns a result with `.success` for iterative units |
 | `Q`, `W` | heat and work added |
 | `Exth` | exergy of the heat duty |
-| `Exdest`, `Sgen`, `Exeff` | exergy destroyed (`T0*Sgen`), entropy generated, exergy efficiency |
+| `Exdest`, `Sgen`, `Exeff` | exergy destroyed (`T0*Sgen`, Gouy-Stodola), entropy generated, exergy efficiency |
+| `Exdest_balance`, `Exbalance_error` | exergy destroyed from the exergy balance of the unit; its difference to `Exdest` (0 when the exergy and entropy data of the streams agree) |
 | `Exloss` | exergy that leaves the unit to the environment as heat at T > T0 and is not used (`max(0, -Exth)`) |
 | `MBcheck()` | prints the relative mass balance error, returns in - out |
 

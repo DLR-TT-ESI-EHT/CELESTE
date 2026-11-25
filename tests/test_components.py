@@ -192,7 +192,8 @@ def test_black_box_separators(syngas_x):
     assert g.F1.n == pytest.approx(0.44500001) and g.W == pytest.approx(1.5333083, rel=1e-6)
     assert g.mass_balance() == pytest.approx(0.0, abs=1e-9) and 0 < g.W
     assert g.energy_balance() == pytest.approx(0.0, abs=1e-12)    # the work is dissipated to the surroundings
-    assert g.Exdest == pytest.approx(0.0, abs=1e-12)                # eff = 1: reversible
+    assert g.Exdest_balance == pytest.approx(0.0, abs=1e-12)        # eff = 1: reversible
+    assert abs(g.Exbalance_error) < 1e-3                            # entropy and exergy data agree to a few W
 
 
 def test_gpu_exergy_destruction_is_T0_times_entropy_generation():
