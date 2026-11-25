@@ -159,33 +159,37 @@ class IntrospectionMixin:
                     }
         return pd.DataFrame(sg).transpose()
     
+    @staticmethod
+    def _exergy_groups() -> dict:
+        """
+        Groups of ``exdest_df``: name -> test ``(unit, path) -> bool``, in the order of the table.
+        A unit counts in every group whose test it passes (a heater is a heater or a cooler by the sign of Q;
+        a valve is found by class or by name). A new family is one more entry.
+        """
+        is_a = lambda *types: (lambda v, i: isinstance(v, types))
+        return {
+            'Compressors': is_a(CSL.components.Pump, CSL.turbomachinery.Compressor),
+            'SOC': is_a(CSL.electrochem.SOC),
+            'ASU': is_a(CSL.components.ASU),
+            'DAC': is_a(CSL.components.DAC),
+            'Heaters': lambda v, i: isinstance(v, CSL.heat.Heater) and v.Q > 0,
+            'Coolers': lambda v, i: isinstance(v, CSL.heat.Heater) and v.Q < 0,
+            'GPU': is_a(CSL.components.GPUbase),
+            'Reactor': is_a(CSL.reactors.EquilBase, CSL.reactors.ExtentReactor, CSL.reactors.HB_1D, CSL.reactors.Reformer),
+            'Separation': is_a(CSL.separation.Flash),
+            'Split_Mix': is_a(CSL.flow.Mixer, CSL.flow.Splitter),
+            'Valves': lambda v, i: isinstance(v, CSL.components.Valve) or 'valve' in i or 'Valve' in i,
+        }
+
     def exdest_df(self):
         """Exergy destruction grouped by component class, in kW and % of the total."""
-        groups = {'Compressors': 0, 'SOC': 0, 'ASU': 0, 'DAC': 0, 'Heaters': 0, 'Coolers': 0, 'GPU': 0,
-                  'Reactor': 0, 'Separation': 0, 'Split_Mix': 0, 'Valves': 0}
-        tot = self.tot_Exdest()
+        tests = self._exergy_groups()
+        groups = dict.fromkeys(tests, 0)
         for i, v in self.get_Exdest().items():
-            if isinstance(v, (CSL.components.Pump, CSL.turbomachinery.Compressor)):
-                groups['Compressors'] += v.Exdest
-            if isinstance(v, CSL.electrochem.SOC):
-                groups['SOC'] += v.Exdest
-            if isinstance(v, CSL.components.ASU):
-                groups['ASU'] += v.Exdest
-            if isinstance(v, CSL.components.DAC):
-                groups['DAC'] += v.Exdest
-            if isinstance(v, CSL.heat.Heater):
-                groups['Heaters'] += np.where(v.Q > 0, v.Exdest, 0)
-                groups['Coolers'] += np.where(v.Q < 0, v.Exdest, 0)
-            if isinstance(v, (CSL.reactors.EquilBase, CSL.reactors.ExtentReactor, CSL.reactors.HB_1D, CSL.reactors.Reformer)):
-                groups['Reactor'] += v.Exdest
-            if isinstance(v, CSL.components.GPUbase):
-                groups['GPU'] += v.Exdest
-            if isinstance(v, CSL.separation.Flash):
-                groups['Separation'] += v.Exdest
-            if isinstance(v, (CSL.flow.Mixer, CSL.flow.Splitter)):
-                groups['Split_Mix'] += v.Exdest
-            if isinstance(v, CSL.components.Valve) or 'valve' in i or 'Valve' in i:
-                groups['Valves'] += v.Exdest
+            for name, test in tests.items():
+                if test(v, i):
+                    groups[name] += v.Exdest
+        tot = self.tot_Exdest()
         groups['Total'] = tot
         ex = pd.DataFrame({'Ex. destruction / kW': {k: float(v) for k, v in groups.items()}})
         ex.insert(1, '%', ex.values*100/tot)
