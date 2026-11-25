@@ -69,13 +69,35 @@ class ModelBase(Base):
         return []
 
     @property
-    def Exdest(self):
-        """Exergy destroyed inside the unit in kJ/s (irreversibility, ``T0*Sgen``). Units override this; models that still assign it in ``ExBs()`` may do so."""
+    def Exdest(self) -> float:
+        """
+        Exergy destroyed inside the unit in kJ/s, from its entropy balance (Gouy-Stodola): ``T0*Sgen``.
+        A unit without an entropy balance (no ``Sgen``) reports ``Exdest_balance``. The difference to the
+        exergy balance of the unit is ``Exbalance_error``.
+        """
+        try:
+            sgen = float(self.Sgen)
+        except (AttributeError, TypeError, ValueError):
+            sgen = np.nan
+        from .exergy import T0
+        return T0*sgen if np.isfinite(sgen) else float(self.Exdest_balance)
+
+    @property
+    def Exdest_balance(self):
+        """
+        Exergy destroyed from the exergy balance of the unit in kJ/s: exergy in + W + heat exergy - exergy out.
+        Units override this; models that still assign it in ``ExBs()`` may do so.
+        """
         return self.__dict__.get('_Exdest_value', 0)
 
-    @Exdest.setter
-    def Exdest(self, value):
+    @Exdest_balance.setter
+    def Exdest_balance(self, value):
         self.__dict__['_Exdest_value'] = value
+
+    @property
+    def Exbalance_error(self) -> float:
+        """Exergy balance minus entropy balance, ``Exdest_balance - T0*Sgen`` in kJ/s: zero if the property models agree."""
+        return float(self.Exdest_balance) - self.Exdest
 
     @property
     def Exloss(self):

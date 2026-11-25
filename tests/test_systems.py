@@ -53,7 +53,7 @@ def test_reports(train):
     ex = train.exdest_df()
     assert ex.loc['Total', 'Ex. destruction / kW'] == pytest.approx(train.tot_Exdest())
     assert ex.loc[['Compressors', 'Coolers'], '%'].sum() == pytest.approx(100.0)
-    assert train.exergy_df().shape == (4, 2) and train.SBcheck().shape == (4, 2)
+    assert train.exergy_df().shape == (4, 3) and train.SBcheck().shape == (4, 2)
     assert train.ViewAllFlange().shape[1] == 8
     assert train.tot_exth_out() < 0
 
@@ -62,9 +62,11 @@ def test_exergy_destruction_and_loss(train):
     """Exdest is the irreversibility (T0*Sgen); Exloss the exergy of rejected heat; both are 0 for units without heat."""
     from celeste.CSL.exergy import T0
     ex = train.exergy_df()
-    assert list(ex.columns) == ['Exdest', 'Exloss']
+    assert list(ex.columns) == ['Exdest', 'Exloss', 'Exbalance_error']
     for name, unit in train.get_Exdest().items():
-        assert unit.Exdest == pytest.approx(T0*unit.Sgen, rel=5e-3, abs=1e-6)
+        assert unit.Exdest == pytest.approx(T0*unit.Sgen)                 # Gouy-Stodola
+        assert unit.Exdest_balance - unit.Exdest == pytest.approx(unit.Exbalance_error)
+        assert abs(unit.Exbalance_error) < 5e-3*abs(unit.Exdest) + 1e-6   # exergy balance agrees
         assert unit.Exloss >= 0
     coolers = [u for u in train.get_Exdest().values() if hasattr(u, 'Exth')]
     assert all(c.Exloss == pytest.approx(max(0, -c.Exth)) for c in coolers)
@@ -77,7 +79,8 @@ def test_exergy_destruction_and_loss(train):
 
 def test_exergy_summary_closes(train):
     s = train.exergy_summary()
-    assert s.Ex_balance == pytest.approx(0, abs=1e-6)
+    assert s.Ex_balance == pytest.approx(train.exergy_df().Exbalance_error.sum(), abs=1e-6)   # data consistency
+    assert abs(s.Ex_balance) < 1e-3*s.Ex_in
     assert s.Exdest == pytest.approx(train.tot_Exdest()) and s.Exloss == pytest.approx(train.tot_Exloss())
     assert 0 < s.efficiency < s.efficiency_max <= 1
     assert s.efficiency_max == pytest.approx(1 - s.Exloss/s.Ex_in - s.Ex_unused/s.Ex_in)
@@ -531,3 +534,14 @@ def test_pfd_views():
     t = tips(pfd.html)
     assert any('size' in v for v in t.values()) and any('water' in v for v in t.values())
     assert '3 units, 4 streams; 1 back stream' in pfd.html
+
+
+def test_negative_destruction_is_reported():
+    """A flash with NASA media splits by Peng-Robinson: the drum of the methanol loop violates the second law."""
+    from celeste.CSL.systems.ProcessBoxes import MethanolLoop
+    loop = MethanolLoop('loop', n_feed=100.0, T_reac=523.15, P=50.0, T_cond=313.15, purge=0.02)
+    loop.run_sol()
+    with pytest.warns(UserWarning, match='negative exergy destruction'):
+        df = loop.exergy_df()
+    assert df.loc['loop.cond.drum', 'Exdest'] < 0 and abs(df.loc['loop.cond.drum', 'Exbalance_error']) > 0
+    assert df.loc[['loop.cond.cooler', 'loop.preheat'], 'Exbalance_error'].abs().max() < 1e-3

@@ -230,7 +230,7 @@ class Compressor(_RealGasPath, ModelBase):
         self._init_state(legacy)
 
     @property
-    def Exdest(self) -> float:
+    def Exdest_balance(self) -> float:
         return self.F0.n*self.F0.Ex - self.F1.n*self.F1.Ex + self.W
 
     @property
@@ -316,8 +316,8 @@ class CompIsot(Compressor):
         return self.Q*(1 - 298.15/self.F0.T)
 
     @property
-    def Exdest(self) -> float:
-        return super().Exdest + self.Exth
+    def Exdest_balance(self) -> float:
+        return super().Exdest_balance + self.Exth
 
     @property
     def Sgen(self) -> float:

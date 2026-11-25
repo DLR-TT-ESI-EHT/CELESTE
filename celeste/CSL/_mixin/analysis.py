@@ -171,15 +171,24 @@ class ReportingMixin:
 
         ``Exdest`` is the irreversibility of the unit (``T0*Sgen``) and can be reduced by a better design;
         ``Exloss`` is the exergy that leaves the unit to the environment as heat at T > T0 and is not used by the process.
+        ``Exbalance_error`` is the exergy balance of the unit minus ``T0*Sgen``: it measures how consistent the
+        exergy and entropy data of its streams are (0 for a consistent unit).
         """
         tab = {}
         for i, v in self.get_Exdest().items():
-            tab[i] = {'Exdest': np.where(np.abs(v.Exdest) > 1e-7, v.Exdest, 0).round(5),
-                      'Exloss': np.where(np.abs(getattr(v, 'Exloss', 0)) > 1e-7, getattr(v, 'Exloss', 0), 0).round(5)}
+            r = lambda x: np.where(np.abs(x) > 1e-7, x, 0).round(5)
+            tab[i] = {'Exdest': r(v.Exdest), 'Exloss': r(getattr(v, 'Exloss', 0)),
+                      'Exbalance_error': r(getattr(v, 'Exbalance_error', 0))}
         if not tab:
             warnings.warn('exergy_df: the system has no units with exergy destruction, the DataFrame is empty')
-            return pd.DataFrame(columns=['Exdest', 'Exloss'], dtype=float)
-        return pd.DataFrame(tab).transpose().astype(float)
+            return pd.DataFrame(columns=['Exdest', 'Exloss', 'Exbalance_error'], dtype=float)
+        df = pd.DataFrame(tab).transpose().astype(float)
+        neg = df.index[df.Exdest < -1e-3]
+        if len(neg):
+            warnings.warn(f'exergy_df: negative exergy destruction (T0*Sgen < 0) in {list(neg)}: the second law is violated '
+                          'inside the unit, the property models of its streams are not consistent '
+                          '(for example a flash with NASA media: phase split from the Peng-Robinson equation)')
+        return df
 
     def exergy_summary(self, products=None, hen=None) -> pd.Series:
         """
@@ -189,7 +198,8 @@ class ReportingMixin:
         by default every sink and every outlet flange of the system is a product. The other sinks and the heat that leaves the units at T > T0 count
         as exergy left over. Net work delivered by units (W < 0) is a product.
 
-        ``Ex_in = Ex_product + Ex_unused + Exloss + Exdest`` (``Ex_balance`` is the remainder, ~0)
+        ``Ex_in = Ex_product + Ex_unused + Exloss + Exdest`` (``Ex_balance`` is the remainder: the sum of the ``Exbalance_error`` of the units,
+        i.e. how well the exergy and entropy data agree; ~0 for consistent models)
         ``efficiency      = Ex_product/Ex_in``
         ``efficiency_max  = 1 - (Ex_unused + Exloss)/Ex_in``, the efficiency with every irreversibility removed
         ``destruction_share = Exdest/Ex_in``
